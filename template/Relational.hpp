@@ -3,7 +3,7 @@
  * @shanghai
  */
 #pragma once
-template<class T>
+template<typename T>
 class Relational {
     public:
         Relational(T numerator_ = 0, T denominator_ = 1):
@@ -24,14 +24,14 @@ class Relational {
         }
 };
 
-template<class T>
+template<typename T>
 const Relational<T> DoMultiply(const Relational<T>& lhs,
         const Relational<T>& rhs) {
     return Relational<T>(lhs.GetNumerator() * rhs.GetNumerator(),
             lhs.GetDenominator() * rhs.GetDenominator());
 }
 
-template<class T>
+template<typename T>
 const bool DoEqual(const Relational<T>& lhs,
         const Relational<T>& rhs) {
     return lhs.GetNumerator() == rhs.GetNumerator() &&

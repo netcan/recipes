@@ -1,3 +1,10 @@
+/* author: netcan
+ * date: 2019/07/29 22:45
+ * @shanghai
+ */
+#pragma once
+
+namespace base {
 class Observable;
 class Observer {
     public:
@@ -14,3 +21,5 @@ class Observable {
         void NotifyObservers();
     private:
 };
+
+}

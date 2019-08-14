@@ -14,6 +14,7 @@ set_property(TARGET main PROPERTY CXX_STANDARD 17)
 set_property(TARGET main PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET main PROPERTY CXX_EXTENSIONS OFF)
 include_directories(main PRIVATE template)
+include_directories(main PRIVATE base)
 target_compile_options(main PRIVATE
     -Wall
     -Wno-sign-compare
