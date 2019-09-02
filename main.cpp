@@ -3,8 +3,9 @@
  * @shanghai
  */
 #include <gtest/gtest.h>
-#include "template/Relational.hpp"
+#include "demo/Relational.hpp"
 #include "base/Construct.hpp"
+#include <functional>
 
 using namespace base;
 
