@@ -1,24 +1,29 @@
 # author by netcan
 # @shanghai 2019/07/29 22:16
 cmake_minimum_required(VERSION 3.10)
-project(CodeSnippet LANGUAGES CXX)
+project(CodeSnippet LANGUAGES CXX C)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+link_directories(/usr/lib /usr/local/lib)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
-enable_testing()
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 
-add_executable(main main.cpp)
-target_link_libraries(main ${GTEST_BOTH_LIBRARIES})
-set_property(TARGET main PROPERTY CXX_STANDARD 17)
-set_property(TARGET main PROPERTY CXX_STANDARD_REQUIRED ON)
-set_property(TARGET main PROPERTY CXX_EXTENSIONS OFF)
-include_directories(main PRIVATE demo)
-include_directories(main PRIVATE base)
-target_compile_options(main PRIVATE
-    -Wall
-    -Wno-sign-compare
-    -Wno-return-type
-    -Wno-unused-result
-    -Wthread-safety
-    )
+add_executable(test_all main.cpp)
+target_link_libraries(test_all ${GTEST_BOTH_LIBRARIES})
+
+include_directories(demo base)
+
+set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_C_FLAGS "-std=c99 -Wall")
+set(CMAKE_C_FLAGS_DEBUG "$ENV{CFLAGS} -O0 -g -ggdb")
+set(CMAKE_C_FLAGS_RELEASE "$ENV{CFLAGS} -O3")
+set(CMAKE_CXX_FLAGS "-Wall -Wno-sign-compare -Wno-return-type -Wno-unused-result -Wthread-safety -std=c++2a")
+set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -g -ggdb")
+set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3")
+
+add_subdirectory(demo)
+add_subdirectory(metaproggramming)
