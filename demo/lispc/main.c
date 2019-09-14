@@ -13,7 +13,9 @@ int main(int argc, char** argv) {
             puts("bye!");
             break;
         }
-        if(lispc(input, result, 1)) puts(result);
+        if(lispc(input, result, 1) != LISPC_PARSE_ERROR) {
+            puts(result);
+        }
 
         free(input);
     }
