@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     puts("Lisp interpreter written in c by netcan");
     puts("Press Ctrl-C to exit\n");
     char result[10240];
-    while(1) {
+    while(lispc_runing) {
         char* input = readline("lispc> ");
         add_history(input);
         if(input == NULL) {

@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int lispc_runing = 1;
+
 static const char* ltype_name[] = {
     [LVAL_ERR]   = "Error",
     [LVAL_NUM]   = "Number",
@@ -45,9 +47,11 @@ lval* lval_sym(const char* s) {
     return v;
 }
 
-lval* lval_func(lbuiltin func) {
+lval* lval_func(char* fname, lbuiltin func) {
     lval* v = malloc(sizeof(lval));
     v->type = LVAL_FUNC;
+    v->fname = malloc(strlen(fname) + 1);
+    strcpy(v->fname, fname);
     v->func = func;
     return v;
 }
@@ -70,10 +74,10 @@ lval* lval_qexpr(void) {
 
 void lval_del(lval* v) {
     switch (v->type) {
-        case LVAL_NUM: break;
-        case LVAL_FUNC: break;
-        case LVAL_ERR: free(v->err); break;
-        case LVAL_SYM: free(v->sym); break;
+        case LVAL_NUM:                  break ;
+        case LVAL_FUNC: free(v->fname); break ;
+        case LVAL_ERR:  free(v->err);   break ;
+        case LVAL_SYM:  free(v->sym);   break ;
         case LVAL_SEXPR:
         case LVAL_QEXPR:
             for (int i = 0; i < v->cell_count; ++i) {
@@ -89,7 +93,11 @@ lval* lval_copy(lval* v) {
     x->type = v->type;
     switch (v->type) {
         case LVAL_NUM: x->num = v->num; break;
-        case LVAL_FUNC: x->func = v->func; break;
+        case LVAL_FUNC:
+            x->fname = malloc(strlen(v->fname) + 1);
+            strcpy(x->fname, v->fname);
+            x->func = v->func;
+            break;
         case LVAL_ERR:
             x->err = malloc(strlen(v->err) + 1);
             strcpy(x->err, v->err);
@@ -203,12 +211,12 @@ char* lval_expr_sprint(const lval* v, char begin, char end, char *buffer) {
 
 char* lval_sprint(const lval* val, char *buffer) {
     switch (val->type) {
-        case LVAL_NUM:   buffer += sprintf(buffer, "%ld", val->num)        ; break;
-        case LVAL_ERR:   buffer += sprintf(buffer, "Errors: %s", val->err) ; break;
-        case LVAL_SYM:   buffer += sprintf(buffer, "%s", val->sym)         ; break;
-        case LVAL_FUNC:  buffer += sprintf(buffer, "<function>") ; break;
-        case LVAL_SEXPR: buffer  = lval_expr_sprint(val, '(', ')', buffer) ; break;
-        case LVAL_QEXPR: buffer  = lval_expr_sprint(val, '{', '}', buffer) ; break;
+        case LVAL_NUM:   buffer += sprintf(buffer, "%ld", val->num)                        ; break;
+        case LVAL_ERR:   buffer += sprintf(buffer, "Errors: %s", val->err)                 ; break;
+        case LVAL_SYM:   buffer += sprintf(buffer, "%s", val->sym)                         ; break;
+        case LVAL_FUNC:  buffer += sprintf(buffer, "<builtin-in function %s>", val->fname) ; break;
+        case LVAL_SEXPR: buffer  = lval_expr_sprint(val, '(', ')', buffer)                 ; break;
+        case LVAL_QEXPR: buffer  = lval_expr_sprint(val, '{', '}', buffer)                 ; break;
     }
     *buffer = '\0';
     return buffer;
@@ -249,9 +257,9 @@ lval* lval_eval_sexpr(lenv* env, lval* v);
 
 // v->cell_count > 0
 lval* builtin_car(lenv* env, lval* v) {
-    LASSERT_ARG_NUM("car", v, 1);
-    LASSERT_TYPE("car", v, 0, LVAL_QEXPR);
-    LASSERT_NOT_EMPTY("car", v, 0);
+    LASSERT_ARG_NUM   ( "car", v, 1);
+    LASSERT_TYPE      ( "car", v, 0, LVAL_QEXPR);
+    LASSERT_NOT_EMPTY ( "car", v, 0);
 
     lval* val = lval_take(v, 0);
     while (val->cell_count > 1) {
@@ -261,9 +269,9 @@ lval* builtin_car(lenv* env, lval* v) {
 }
 
 lval* builtin_cdr(lenv* env, lval* v) {
-    LASSERT_ARG_NUM("cdr", v, 1);
-    LASSERT_TYPE("cdr", v, 0, LVAL_QEXPR);
-    LASSERT_NOT_EMPTY("cdr", v, 0);
+    LASSERT_ARG_NUM   ( "cdr", v, 1);
+    LASSERT_TYPE      ( "cdr", v, 0, LVAL_QEXPR);
+    LASSERT_NOT_EMPTY ( "cdr", v, 0);
 
     lval *val = lval_take(v, 0);
     lval_del(lval_pop(val, 0));
@@ -277,8 +285,8 @@ lval* builtin_list(lenv* env, lval *v) {
 }
 
 lval* builtin_eval(lenv* env, lval *v) {
-    LASSERT_ARG_NUM("eval", v, 1);
-    LASSERT_TYPE("eval", v, 0, LVAL_QEXPR);
+    LASSERT_ARG_NUM ( "eval", v, 1);
+    LASSERT_TYPE    ( "eval", v, 0, LVAL_QEXPR);
 
     /* lval_println(v); */
     lval *val = lval_take(v, 0);
@@ -300,20 +308,17 @@ lval* builtin_join(lenv* env, lval *v) {
 }
 
 lval* builtin_cons(lenv* env, lval* v) {
-    LASSERT_ARG_NUM("cons", v, 2);
-    LASSERT_TYPE("cons", v, 1, LVAL_QEXPR);
+    LASSERT_ARG_NUM ( "cons", v, 2);
+    LASSERT_TYPE    ( "cons", v, 1, LVAL_QEXPR);
     lval* val = lval_qexpr();
     lval_add(val, lval_pop(v, 0));
-    lval* remain = lval_take(v, 0);
-    while (remain->cell_count > 0) {
-        lval_add(val, lval_pop(remain, 0));
-    }
+    lval_join(val, lval_take(v, 0));
     return val;
 }
 
 lval* builtin_len(lenv* env, lval* v) {
-    LASSERT_ARG_NUM("len", v, 1);
-    LASSERT_TYPE("len", v, 0, LVAL_QEXPR);
+    LASSERT_ARG_NUM ( "len", v, 1);
+    LASSERT_TYPE    ( "len", v, 0, LVAL_QEXPR);
 
     long len = v->cell[0]->cell_count;;
     lval_del(v);
@@ -372,6 +377,25 @@ lval* builtin_def(lenv* env, lval* v) {
     return lval_sexpr();
 }
 
+lval* builtin_exit(lenv* env, lval* v) {
+    lispc_runing = 0;
+    lval_del(v);
+    return lval_sexpr();
+}
+
+// show env contents
+lval* builtin_env(lenv* env, lval* v) {
+    lval_del(v);
+    lval* val = lval_qexpr();
+    for(int i = 0; i < env->count; ++i) {
+        lval* entry = lval_qexpr();
+        lval_add(entry, lval_sym(env->syms[i]));
+        lval_add(entry, lval_copy(env->vals[i]));
+        lval_add(val, entry);
+    }
+    return val;
+}
+
 lval* builtin_add(lenv* env, lval* v) { return builtin_op(v, "+"); }
 lval* builtin_sub(lenv* env, lval* v) { return builtin_op(v, "-"); }
 lval* builtin_mul(lenv* env, lval* v) { return builtin_op(v, "*"); }
@@ -384,7 +408,7 @@ lval* builtin_max(lenv* env, lval* v) { return builtin_op(v, "max"); }
 
 void lenv_add_builtin(lenv* env, char* name, lbuiltin func) {
     lval* k = lval_sym(name);
-    lval* v = lval_func(func);
+    lval* v = lval_func(name, func);
     lenv_put(env, k, v);
     lval_del(k); lval_del(v);
     return;
@@ -412,6 +436,9 @@ void lenv_add_builtins(lenv* env) {
 
     lenv_add_builtin(env, "def",  builtin_def);
     lenv_add_builtin(env, "let",  builtin_def);
+
+    lenv_add_builtin(env, "exit", builtin_exit);
+    lenv_add_builtin(env, "env", builtin_env);
 }
 
 lval* lval_eval(lenv* env, lval* v) {

@@ -63,7 +63,7 @@ TEST(LispCTest, lispc) {
     EXPECT_EQ(lispc("cons 1 2", result, 0), LISPC_RUNTIME_ERROR);
 
     EXPECT_EQ(lispc("cons", result, 0), LISPC_RET_OK);
-    EXPECT_STREQ(result, "<function>");
+    EXPECT_STREQ(result, "<builtin-in function cons>");
 
     EXPECT_EQ(lispc("cons 1 {2}", result, 0), LISPC_RET_OK);
     EXPECT_STREQ(result, "{1 2}");

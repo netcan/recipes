@@ -28,7 +28,10 @@ struct lval {
             int cell_count;
             struct lval **cell;
         };
-        lbuiltin func;
+        struct {
+            char* fname;
+            lbuiltin func;
+        };
     };
 };
 
@@ -70,6 +73,7 @@ extern "C" {
 #endif
 
 int lispc(const char *, char*, int);
+extern int lispc_runing;
 
 #ifdef __cplusplus
 }
