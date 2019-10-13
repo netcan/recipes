@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <gtest/gtest.h>
 #include <map>
 using namespace std;
 
@@ -136,21 +137,19 @@ int Lisp::expr(std::map<string, int>* symTab) {
     return lisp(symTab);
 }
 
-int main() {
-    assert(Lisp("5") == 5);
-    assert(Lisp("(5)") == 5);
-    assert(Lisp("((5))") == 5);
-    assert(Lisp("(add 5 6)") == 11);
-    assert(Lisp("(let x 2 x)") == 2);
-    assert(Lisp("(mult 3 (add 2 3))") == 15);
-    assert(Lisp("(let x 2 (mult x 5))") == 10);
-    assert(Lisp("(let x 2 (mult x (let x 3 y 4 (add x y))))") == 14);
-    assert(Lisp("(let x 3 x 2 x)") == 2);
-    assert(Lisp("(let x 1 y 2 x (add x y) (add x y))") == 5);
-    assert(Lisp("(let x 2 (add (let x 3 (let x 4 x)) x))") == 6);
-    assert(Lisp("(let a1 3 b2 (add a1 1) b2)") == 4);
-    assert(Lisp("(let x -2 y x y)") == -2);
-    assert(Lisp("(let var 78 b 77 (let c 33 (add c (mult var 66))))") == 5181);
-
-    return 0;
+TEST(lispcpp, test) {
+    EXPECT_EQ(Lisp("5")                                                  == 5,    true);
+    EXPECT_EQ(Lisp("(5)")                                                == 5,    true);
+    EXPECT_EQ(Lisp("((5))")                                              == 5,    true);
+    EXPECT_EQ(Lisp("(add 5 6)")                                          == 11,   true);
+    EXPECT_EQ(Lisp("(let x 2 x)")                                        == 2,    true);
+    EXPECT_EQ(Lisp("(mult 3 (add 2 3))")                                 == 15,   true);
+    EXPECT_EQ(Lisp("(let x 2 (mult x 5))")                               == 10,   true);
+    EXPECT_EQ(Lisp("(let x 2 (mult x (let x 3 y 4 (add x y))))")         == 14,   true);
+    EXPECT_EQ(Lisp("(let x 3 x 2 x)")                                    == 2,    true);
+    EXPECT_EQ(Lisp("(let x 1 y 2 x (add x y) (add x y))")                == 5,    true);
+    EXPECT_EQ(Lisp("(let x 2 (add (let x 3 (let x 4 x)) x))")            == 6,    true);
+    EXPECT_EQ(Lisp("(let a1 3 b2 (add a1 1) b2)")                        == 4,    true);
+    EXPECT_EQ(Lisp("(let x -2 y x y)")                                   == -2,   true);
+    EXPECT_EQ(Lisp("(let var 78 b 77 (let c 33 (add c (mult var 66))))") == 5181, true);
 }

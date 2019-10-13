@@ -160,6 +160,7 @@ pub fn highlight(code: &str) -> String {
 }
 
 fn main() {
+    println!("{}", execute("FFFFFLFFFFFLFFFFFLFFFFFL"));
     println!("{}", execute("FFLFFFLFFFFLFFFFFLFFFFFFLFFFFFFFLFFFFFFFFLFFFFFFFFFLFFFFFFFFFF"));
     println!("{}", execute("(L(F5(RF3))(((R(F3R)F7))))"));
     println!("{}", execute("F4L((F4R)2(F4L)2)2(F4R)2F4"));

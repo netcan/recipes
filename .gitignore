@@ -2,5 +2,5 @@ compile_commands.json
 .DS_Store
 *.dSym
 *.out
-/build/
+build/
 target/

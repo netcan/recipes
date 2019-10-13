@@ -5,7 +5,6 @@
 #include <gtest/gtest.h>
 #include "demo/Relational.hpp"
 #include "base/Construct.hpp"
-#include "demo/lispc/lisp.h"
 #include <functional>
 
 using namespace base;

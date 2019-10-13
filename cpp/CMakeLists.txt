@@ -12,10 +12,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 
-add_executable(test_all main.cpp)
-target_link_libraries(test_all ${GTEST_BOTH_LIBRARIES})
 
-include_directories(demo base)
+include_directories(.)
 
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_C_FLAGS "-std=c99 -Wall")
@@ -26,4 +24,5 @@ set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -g -ggdb")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3")
 
 add_subdirectory(demo)
+add_subdirectory(test)
 add_subdirectory(metaproggramming)
