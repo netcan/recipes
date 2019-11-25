@@ -1,2 +1,2 @@
-## CodeSnippet
-Here is my code snippet.
+## Practice
+Here is my code practice.
