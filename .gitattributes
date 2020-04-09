@@ -1,0 +1,3 @@
+cpp/gldemo/src/glad.c linguist-vendored
+cpp/gldemo/include/glad/* linguist-vendored
+cpp/gldemo/include/KHR/* linguist-vendored
