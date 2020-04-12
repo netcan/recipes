@@ -9,6 +9,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <cmath>
 
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -21,16 +22,17 @@ static const char* VertexShaderSource = R"(
 layout (location = 0) in vec3 aPos;
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = vec4(aPos, 1.0);
 }
 )";
 
 static const char* FragShaderSource = R"(
 #version 330 core
 out vec4 FragColor;
+uniform vec4 inColor;
 void main()
 {
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+    FragColor = inColor;
 }
 )";
 
@@ -130,6 +132,11 @@ int main(int argc, char** argv) {
 
         glBindVertexArray(VAO);
         glUseProgram(shaderProgram);
+
+        float greenColor = sin(glfwGetTime()) / 2 + 0.5;
+        int inColorPos = glGetUniformLocation(shaderProgram, "inColor");
+        glUniform4f(inColorPos, 0, greenColor, 0, 1);
+
         // glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
