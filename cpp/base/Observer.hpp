@@ -1,9 +1,12 @@
-/* author: netcan
- * date: 2019/07/29 22:45
- * @shanghai
- */
-#pragma once
-
+/*************************************************************************
+    > File Name: Observer.hpp
+    > Author: Netcan
+    > Blog: http://www.netcan666.com
+    > Mail: 1469709759@qq.com
+    > Created Time: 2019/07/29 22:45
+************************************************************************/
+#ifndef __OBSERVER_H__
+#define __OBSERVER_H__
 namespace base {
 class Observable;
 class Observer {
@@ -21,5 +24,5 @@ class Observable {
         void NotifyObservers();
     private:
 };
-
 }
+#endif

@@ -1,8 +1,12 @@
-/* author: netcan
- * date: 2019/08/14 22:04
- * @shanghai
- */
-#pragma once
+/*************************************************************************
+    > File Name: Construct.hpp
+    > Author: Netcan
+    > Blog: http://www.netcan666.com
+    > Mail: 1469709759@qq.com
+    > Created Time: 2019/08/14 22:04
+************************************************************************/
+#ifndef __CONSTRUCT_H__
+#define __CONSTRUCT_H__
 #include <memory>
 #include "RetCode.hpp"
 
@@ -39,3 +43,5 @@ std::shared_ptr<T> make_shared_construct(Args&& ...args) noexcept {
     return std::move(spObj);
 }
 }
+
+#endif
