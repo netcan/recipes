@@ -23,7 +23,8 @@ set(CMAKE_CXX_FLAGS "-Wall -Wno-sign-compare -Wno-return-type -Wno-unused-result
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -g -ggdb -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3")
 
-add_subdirectory(demo)
+add_subdirectory(oop)
 add_subdirectory(test)
+add_subdirectory(lisp-parser)
 add_subdirectory(metaproggramming)
 add_subdirectory(glLearn)

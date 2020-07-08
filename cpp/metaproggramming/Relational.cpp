@@ -2,7 +2,10 @@
  * date: 2019/07/29 22:45
  * @shanghai
  */
-#pragma once
+#include <gtest/gtest.h>
+#include "base/Construct.hpp"
+#include <functional>
+
 template<typename T>
 class Relational {
     public:
@@ -37,3 +40,14 @@ const bool DoEqual(const Relational<T>& lhs,
     return lhs.GetNumerator() == rhs.GetNumerator() &&
             lhs.GetDenominator() == rhs.GetDenominator();
 }
+
+TEST(TestRelation, testRelation) {
+    Relational<int> rel{1, 2};
+    for(int k = 0; k < 10; ++k) {
+        Relational<int> result = rel * k;
+        EXPECT_EQ(result.GetNumerator(), k);
+        EXPECT_EQ(result.GetDenominator(), 2);
+        EXPECT_TRUE(rel * k == k * rel);
+    }
+}
+

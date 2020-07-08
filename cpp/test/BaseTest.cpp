@@ -3,21 +3,10 @@
  * @shanghai
  */
 #include <gtest/gtest.h>
-#include "demo/Relational.hpp"
 #include "base/Construct.hpp"
 #include <functional>
 
 using namespace base;
-
-TEST(TestRelation, testRelation) {
-    Relational<int> rel{1, 2};
-    for(int k = 0; k < 10; ++k) {
-        Relational<int> result = rel * k;
-        EXPECT_EQ(result.GetNumerator(), k);
-        EXPECT_EQ(result.GetDenominator(), 2);
-        EXPECT_TRUE(rel * k == k * rel);
-    }
-}
 
 TEST(TestConstruct, testConstruct) {
     struct HasConstruct {
