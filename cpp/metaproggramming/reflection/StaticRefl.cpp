@@ -9,6 +9,10 @@
 #include <iostream>
 #include <tuple>
 #include <typeinfo>
+
+/*****************************************************
+* Static Reflection Implementation
+*****************************************************/
 template<typename T>
 inline constexpr auto StructMeta() {
     return std::make_tuple();
@@ -42,6 +46,9 @@ inline constexpr void foreach(T&& obj, F&& f) {
             std::make_index_sequence<std::tuple_size_v<decltype(fields)>>{});
 }
 
+/*****************************************************
+* Static Reflection Test
+*****************************************************/
 struct ReflStructTest {
     int x;
     int y;
@@ -61,37 +68,54 @@ REFL(Point,
 
 struct Rect {
     Point p1, p2;
+    uint32_t color;
 };
 
 REFL(Rect,
         FIELD(p1),
-        FIELD(p2)
-        );
+        FIELD(p2),
+        FIELD(color));
 
+
+template<typename T>
+void dumpObj(T&& obj, const char* fieldName = "", int depth = 0) {
+    auto indent = [depth] {
+        for (int i = 0; i < depth; ++i) {
+            printf("   ");
+        }
+    };
+
+    if constexpr(std::is_class_v<std::decay_t<T>>) {
+        indent();
+        printf("%s%s{\n", fieldName, *fieldName ? ": " : "");
+        foreach(obj, [depth](auto&& fieldName, auto&& value) {
+            dumpObj(value, fieldName, depth + 1);
+        });
+        indent();
+        printf("}%s\n", depth == 0 ? "" : ",");
+    } else {
+        indent();
+        std::cout << fieldName << ": " << obj << "," << std::endl;
+    }
+}
 
 int main(int argc, char** argv) {
     Rect rect {
         {0, 0},
         {8, 9},
+        12345678,
     };
-    /*
-     * p1: {
-     *     x: 0
-     *     y: 0
-     * }
-     * p2: {
-     *     x: 8
-     *     y: 9
-     * }
-    */
-
-    foreach(rect, [](auto&& fieldName, auto&& value) {
-        printf("%s: {\n", fieldName);
-        foreach(value, [](auto&& fieldName, auto&& value) {
-            printf("    %s: %d\n", fieldName, value);
-        });
-        printf("}\n");
-    });
-
+	// {
+	//    p1: {
+	//       x: 0,
+	//       y: 0,
+	//    },
+	//    p2: {
+	//       x: 8,
+	//       y: 9,
+	//    },
+	//    color: 12345678,
+	// }
+    dumpObj(rect);
     return 0;
 }
