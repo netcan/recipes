@@ -1,6 +1,7 @@
 compile_commands.json
 .DS_Store
 *.dSym
+*.o
 *.out
 build/
 target/

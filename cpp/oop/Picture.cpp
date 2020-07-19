@@ -7,6 +7,7 @@
 ************************************************************************/
 #include <iostream>
 #include <vector>
+#include <cassert>
 
 struct IPicture {
     virtual void display(std::ostream& o, size_t row, size_t len) = 0;
