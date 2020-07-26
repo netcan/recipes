@@ -6,66 +6,11 @@
     > Mail: 1469709759@qq.com
     > Created Time: 2020-07-14 21:16
 ************************************************************************/
-#include <type_traits>
 #include <algorithm>
 #include <bitset>
 #include <cstdio>
 #include <gtest/gtest.h>
-
-template <typename ...Ts>
-struct TypeList {
-    using type = TypeList<Ts...>;
-    static constexpr size_t size = 0;
-    template <typename T>
-    using appendTo = typename TypeList<T>::type;
-};
-
-template <typename Head, typename ...Tails>
-struct TypeList<Head, Tails...> {
-    using type = TypeList<Head, Tails...>;
-    using head = Head;
-    using tails = TypeList<Tails...>;
-    static constexpr size_t size = sizeof...(Tails) + 1;
-
-    template <typename T>
-    using appendTo = typename TypeList<Head, Tails..., T>::type;
-
-    template <template<typename...> typename T>
-    using exportTo = T<Head, Tails...>;
-};
-
-static_assert(std::is_same_v<TypeList<int, char>::type,
-        TypeList<int>::appendTo<char>::type>);
-
-template<typename IN,
-    template<typename> typename P,
-    typename S = TypeList<>,
-    typename R = TypeList<>,
-    typename = void>
-struct Split {
-    struct type {
-        using satisfied = S;
-        using rest = R;
-    };
-};
-
-template<typename IN, template<typename> typename P, typename S, typename R>
-class Split<IN, P, S, R, std::enable_if_t<P<typename IN::head>::value>> {
-    using satisfied = typename S::template appendTo<typename IN::head>::type;
-public:
-    using type = typename Split<typename IN::tails, P, satisfied, R>::type;
-};
-
-template<typename IN,
-    template<typename> typename P,
-    typename S,
-    typename R>
-class Split<IN, P, S, R, std::enable_if_t<!P<typename IN::head>::value> >  {
-    using rest = typename R::template appendTo<typename IN::head>::type;
-public:
-    using type = typename Split<typename IN::tails, P, S, rest>::type;
-};
-
+#include "Typelist.hpp"
 
 template<typename ES = TypeList<>, typename GS = TypeList<>, typename = void>
 struct GroupEntriesTrait {
