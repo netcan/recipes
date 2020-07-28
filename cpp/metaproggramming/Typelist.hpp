@@ -16,8 +16,14 @@ struct TypeList {
     template <typename T>
     using appendTo = typename TypeList<T>::type;
 
+    template <typename ...T>
+    using extends = typename TypeList<T...>::type;
+
     template <typename T>
     using prepend = typename TypeList<T>::type;
+
+    template <template<typename...> typename T>
+    using exportTo = T<Ts...>;
 };
 
 template <typename Head, typename ...Tails>
@@ -29,6 +35,9 @@ struct TypeList<Head, Tails...> {
 
     template <typename T>
     using appendTo = typename TypeList<Head, Tails..., T>::type;
+
+    template <typename ...Ts>
+    using extends = typename TypeList<Head, Tails..., Ts...>::type;
 
     template <typename T>
     using prepend = typename TypeList<T, Head, Tails...>::type;
@@ -70,19 +79,22 @@ public:
 };
 
 // Replace once
-template<typename IN, typename FROM, typename TO, typename = void>
+template<typename IN, typename FROM, typename TO, typename OUT = TypeList<>, typename = void>
 struct Replace {
-    using type = IN;
+    using type = OUT;
 };
 
-template<typename IN, typename FROM, typename TO>
-class Replace<IN, FROM, TO, std::void_t<typename IN::head>> {
-    using rest = typename Replace<typename IN::tails, FROM, TO>::type;
+template<typename IN, typename OUT, typename TO>
+class Replace<IN, typename IN::head, TO, OUT, std::void_t<typename IN::head>> {
+    using R = typename OUT::template appendTo<TO>;
 public:
-    using type = typename rest::template prepend<
-        std::conditional_t<
-        std::is_same_v<typename IN::head, FROM>
-        , TO
-        , typename IN::head>>;
+    using type = typename IN::tails::template exportTo<R::template extends>::type;
+};
+
+template<typename IN, typename FROM, typename OUT, typename TO>
+class Replace<IN, FROM, TO, OUT, std::void_t<typename IN::head>> {
+    using C = typename OUT::template appendTo<typename IN::head>;
+public:
+    using type = typename Replace<typename IN::tails, FROM, TO, C>::type;
 };
 

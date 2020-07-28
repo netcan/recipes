@@ -3,5 +3,6 @@ compile_commands.json
 *.dSym
 *.o
 *.out
+*.gch
 build/
 target/

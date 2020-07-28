@@ -7,6 +7,7 @@
     > Created Time: 2020-07-26 21:12
 ************************************************************************/
 #include "Typelist.hpp"
+#include <functional>
 
 struct Widget              {};
 struct ScrollBar:   Widget {};
@@ -62,6 +63,5 @@ static_assert(std::is_same_v<
         , TypeList<GraphButton, ScrollBar, Button, Widget>::type>);
 
 int main(int argc, char** argv) {
-
     return 0;
 }
