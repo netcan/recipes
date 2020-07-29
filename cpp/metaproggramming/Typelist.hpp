@@ -13,11 +13,8 @@ template <typename ...Ts>
 struct TypeList {
     using type = TypeList<Ts...>;
     static constexpr size_t size = 0;
-    template <typename T>
-    using appendTo = typename TypeList<T>::type;
-
     template <typename ...T>
-    using extends = typename TypeList<T...>::type;
+    using appendTo = typename TypeList<T...>::type;
 
     template <typename T>
     using prepend = typename TypeList<T>::type;
@@ -33,11 +30,8 @@ struct TypeList<Head, Tails...> {
     using tails = TypeList<Tails...>;
     static constexpr size_t size = sizeof...(Tails) + 1;
 
-    template <typename T>
-    using appendTo = typename TypeList<Head, Tails..., T>::type;
-
     template <typename ...Ts>
-    using extends = typename TypeList<Head, Tails..., Ts...>::type;
+    using appendTo = typename TypeList<Head, Tails..., Ts...>::type;
 
     template <typename T>
     using prepend = typename TypeList<T, Head, Tails...>::type;
@@ -88,7 +82,7 @@ template<typename IN, typename OUT, typename TO>
 class Replace<IN, typename IN::head, TO, OUT, std::void_t<typename IN::head>> {
     using R = typename OUT::template appendTo<TO>;
 public:
-    using type = typename IN::tails::template exportTo<R::template extends>::type;
+    using type = typename IN::tails::template exportTo<R::template appendTo>::type;
 };
 
 template<typename IN, typename FROM, typename OUT, typename TO>
