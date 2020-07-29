@@ -9,6 +9,9 @@
 #include <type_traits>
 #include <cstddef>
 
+template<typename...>
+struct dump;
+
 template <typename ...Ts>
 struct TypeList {
     using type = TypeList<Ts...>;
@@ -90,5 +93,33 @@ class Replace<IN, FROM, TO, OUT, std::void_t<typename IN::head>> {
     using C = typename OUT::template appendTo<typename IN::head>;
 public:
     using type = typename Replace<typename IN::tails, FROM, TO, C>::type;
+};
+
+template<typename IN, template<typename, typename> class CMP, typename OUT = typename IN::head, typename = void>
+struct SelectBest {
+    using type = OUT;
+};
+
+template<typename IN, template<typename, typename> class CMP, typename OUT>
+struct SelectBest<IN, CMP, OUT, std::void_t<typename IN::head>> {
+    using type = typename SelectBest<typename IN::tails, CMP,
+          std::conditional_t<
+              CMP<typename IN::head, OUT>::value,
+                typename IN::head,
+                OUT>>::type;
+};
+
+template<typename IN, template<typename, typename> class CMP, typename = void>
+struct Sort {
+    using type = IN;
+};
+
+template<typename IN, template<typename, typename> class CMP>
+class Sort<IN, CMP, std::void_t<typename IN::head>> {
+    using BEST = typename SelectBest<typename IN::tails, CMP, typename IN::head>::type;
+    using REST = typename Replace<typename IN::tails, BEST, typename IN::head>::type;
+    using L = typename Sort<REST, CMP>::type;
+public:
+    using type = typename L::template prepend<BEST>;
 };
 
