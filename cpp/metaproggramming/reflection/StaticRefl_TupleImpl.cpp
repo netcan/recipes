@@ -81,18 +81,18 @@ template<typename T>
 void dumpObj(T&& obj, const char* fieldName = "", int depth = 0) {
     auto indent = [depth] {
         for (int i = 0; i < depth; ++i) {
-            printf("   ");
+            std::cout << "    ";
         }
     };
 
     if constexpr(std::is_class_v<std::decay_t<T>>) {
         indent();
-        printf("%s%s{\n", fieldName, *fieldName ? ": " : "");
+        std::cout << fieldName << (*fieldName ? ": {" : "{") << std::endl;
         foreach(obj, [depth](auto&& fieldName, auto&& value) {
             dumpObj(value, fieldName, depth + 1);
         });
         indent();
-        printf("}%s\n", depth == 0 ? "" : ",");
+        std::cout << "}" << (depth == 0 ? "" : ",") << std::endl;
     } else {
         indent();
         std::cout << fieldName << ": " << obj << "," << std::endl;

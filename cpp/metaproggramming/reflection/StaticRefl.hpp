@@ -9,7 +9,6 @@
 #ifndef STATIC_REFL_H
 #define STATIC_REFL_H
 #include <type_traits>
-#include <iostream>
 #include <utility>
 #include <cstddef>
 
@@ -35,15 +34,15 @@
         FOR_EACH_8,  FOR_EACH_7,  FOR_EACH_6,  FOR_EACH_5,  FOR_EACH_4,  FOR_EACH_3,  FOR_EACH_2,  FOR_EACH_1 ) \
         (func, 0, __VA_ARGS__)
 
-#define FOR_EACH_1(func, i, arg) func(i, arg);
-#define FOR_EACH_2(func, i, arg, ...)  func(i, arg); FOR_EACH_1(func, i + 1, __VA_ARGS__)
-#define FOR_EACH_3(func, i, arg, ...)  func(i, arg); FOR_EACH_2(func, i + 1, __VA_ARGS__)
-#define FOR_EACH_4(func, i, arg, ...)  func(i, arg); FOR_EACH_3(func, i + 1, __VA_ARGS__)
-#define FOR_EACH_5(func, i, arg, ...)  func(i, arg); FOR_EACH_4(func, i + 1, __VA_ARGS__)
-#define FOR_EACH_6(func, i, arg, ...)  func(i, arg); FOR_EACH_5(func, i + 1, __VA_ARGS__)
-#define FOR_EACH_7(func, i, arg, ...)  func(i, arg); FOR_EACH_6(func, i + 1, __VA_ARGS__)
-#define FOR_EACH_8(func, i, arg, ...)  func(i, arg); FOR_EACH_7(func, i + 1, __VA_ARGS__)
-#define FOR_EACH_9(func, i, arg, ...)  func(i, arg); FOR_EACH_8(func, i + 1, __VA_ARGS__)
+#define FOR_EACH_1(func, i, arg)        func(i, arg);
+#define FOR_EACH_2(func, i, arg, ...)   func(i, arg); FOR_EACH_1(func, i + 1, __VA_ARGS__)
+#define FOR_EACH_3(func, i, arg, ...)   func(i, arg); FOR_EACH_2(func, i + 1, __VA_ARGS__)
+#define FOR_EACH_4(func, i, arg, ...)   func(i, arg); FOR_EACH_3(func, i + 1, __VA_ARGS__)
+#define FOR_EACH_5(func, i, arg, ...)   func(i, arg); FOR_EACH_4(func, i + 1, __VA_ARGS__)
+#define FOR_EACH_6(func, i, arg, ...)   func(i, arg); FOR_EACH_5(func, i + 1, __VA_ARGS__)
+#define FOR_EACH_7(func, i, arg, ...)   func(i, arg); FOR_EACH_6(func, i + 1, __VA_ARGS__)
+#define FOR_EACH_8(func, i, arg, ...)   func(i, arg); FOR_EACH_7(func, i + 1, __VA_ARGS__)
+#define FOR_EACH_9(func, i, arg, ...)   func(i, arg); FOR_EACH_8(func, i + 1, __VA_ARGS__)
 #define FOR_EACH_10(func, i, arg, ...)  func(i, arg); FOR_EACH_9(func, i + 1, __VA_ARGS__)
 #define FOR_EACH_11(func, i, arg, ...)  func(i, arg); FOR_EACH_10(func, i + 1, __VA_ARGS__)
 #define FOR_EACH_12(func, i, arg, ...)  func(i, arg); FOR_EACH_11(func, i + 1, __VA_ARGS__)
