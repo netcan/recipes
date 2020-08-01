@@ -23,17 +23,6 @@
         32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, \
         16, 15, 14, 13, 12, 11, 10, 9,  8,  7,  6,  5,  4,  3,  2,  1)
 
-#define FOR_EACH(func, ...) GET_NTH_ARG(__VA_ARGS__,                                                            \
-        FOR_EACH_64, FOR_EACH_63, FOR_EACH_62, FOR_EACH_61, FOR_EACH_60, FOR_EACH_59, FOR_EACH_58, FOR_EACH_57, \
-        FOR_EACH_56, FOR_EACH_55, FOR_EACH_54, FOR_EACH_53, FOR_EACH_52, FOR_EACH_51, FOR_EACH_50, FOR_EACH_49, \
-        FOR_EACH_48, FOR_EACH_47, FOR_EACH_46, FOR_EACH_45, FOR_EACH_44, FOR_EACH_43, FOR_EACH_42, FOR_EACH_41, \
-        FOR_EACH_40, FOR_EACH_39, FOR_EACH_38, FOR_EACH_37, FOR_EACH_36, FOR_EACH_35, FOR_EACH_34, FOR_EACH_33, \
-        FOR_EACH_32, FOR_EACH_31, FOR_EACH_30, FOR_EACH_29, FOR_EACH_28, FOR_EACH_27, FOR_EACH_26, FOR_EACH_25, \
-        FOR_EACH_24, FOR_EACH_23, FOR_EACH_22, FOR_EACH_21, FOR_EACH_20, FOR_EACH_19, FOR_EACH_18, FOR_EACH_17, \
-        FOR_EACH_16, FOR_EACH_15, FOR_EACH_14, FOR_EACH_13, FOR_EACH_12, FOR_EACH_11, FOR_EACH_10, FOR_EACH_9,  \
-        FOR_EACH_8,  FOR_EACH_7,  FOR_EACH_6,  FOR_EACH_5,  FOR_EACH_4,  FOR_EACH_3,  FOR_EACH_2,  FOR_EACH_1 ) \
-        (func, 0, __VA_ARGS__)
-
 #define FOR_EACH_1(func, i, arg)        func(i, arg);
 #define FOR_EACH_2(func, i, arg, ...)   func(i, arg); FOR_EACH_1(func, i + 1, __VA_ARGS__)
 #define FOR_EACH_3(func, i, arg, ...)   func(i, arg); FOR_EACH_2(func, i + 1, __VA_ARGS__)
@@ -100,11 +89,13 @@
 #define FOR_EACH_64(func, i, arg, ...)  func(i, arg); FOR_EACH_63(func, i + 1, __VA_ARGS__)
 
 #define STR(x) #x
+#define CONCATE(x, y) x ## y
 #define STRING(x) STR(x)
 #define PARE(...) __VA_ARGS__
 #define EAT(...)
 #define PAIR(x) PARE x // PAIR((int) x) => PARE(int) x => int x
 #define STRIP(x) EAT x // STRIP((int) x) => EAT(int) x => x
+#define PASTE(x, y) CONCATE(x, y)
 
 #define FIELD_EACH(i, arg)                    \
     PAIR(arg);                                \
@@ -124,7 +115,7 @@
     struct st {                                                             \
         template <typename, size_t> struct FIELD;                           \
         static constexpr size_t _field_count_ = GET_ARG_COUNT(__VA_ARGS__); \
-        FOR_EACH(FIELD_EACH, __VA_ARGS__)                                   \
+        PASTE(FOR_EACH_, GET_ARG_COUNT(__VA_ARGS__)) (FIELD_EACH, 0, __VA_ARGS__) \
     };                                                                      \
 
 template<typename T, typename F, size_t... Is>
