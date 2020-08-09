@@ -1,4 +1,5 @@
 find_package(LLVM REQUIRED CONFIG)
+find_package(Clang REQUIRED CONFIG)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -11,40 +12,18 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-# Find the libraries that correspond to the LLVM components
-# that we wish to use
-llvm_map_components_to_libnames(
-    llvm_libs
-    Support
-    Core
-    Option
-    FrontendOpenMP)
-
-# add_executable(
-    # RefactorDecl
-    # RefactorDecl.cpp)
-
 add_library(
     RefactorDecl
     SHARED
     RefactorDecl.cpp)
 
 target_link_libraries(RefactorDecl
+    "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+
+add_executable(
+    RefactorDeclMain
+    RefactorDeclMain.cpp)
+
+target_link_libraries(RefactorDeclMain
     PRIVATE
-    clangASTMatchers
-    clangAST
-    clangBasic
-    clangLex
-    clangRewrite
-    clangSerialization
-    clangSema
-    clangAnalysis
-    clangDriver
-    clangEdit
-    clangFrontend
-    clangParse
-    # clangTooling
-    # clangFormat
-    # clangToolingInclusions
-    # clangToolingCore
-    ${llvm_libs})
+    clangTooling)
