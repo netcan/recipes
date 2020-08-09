@@ -2,7 +2,7 @@
   > File Name: RefactorDecl.cpp
   > Author: Netcan
   > Descripton: A simple refactor plugin for clang
-  > Blog: http://www.netcan666.com
+  > Blog: https://netcan.github.io/
   > Mail: 1469709759@qq.com
   > Created Time: 2020-08-07 22:12
  ************************************************************************/

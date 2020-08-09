@@ -2,7 +2,7 @@
     > File Name: StaticRefl.cpp
     > Author: Netcan
     > Descripton: Static Reflection implementation
-    > Blog: http://www.netcan666.com
+    > Blog: https://netcan.github.io/
     > Mail: 1469709759@qq.com
     > Created Time: 2020-07-08 23:09
 ************************************************************************/

@@ -1,7 +1,7 @@
 /*************************************************************************
     > File Name: Observer.hpp
     > Author: Netcan
-    > Blog: http://www.netcan666.com
+    > Blog: https://netcan.github.io/
     > Mail: 1469709759@qq.com
     > Created Time: 2019/07/29 22:45
 ************************************************************************/

@@ -2,7 +2,7 @@
     > File Name: ScopeGuard.hpp
     > Author: Netcan
     > Descripton: ScopeGuard for exit handler
-    > Blog: http://www.netcan666.com
+    > Blog: https://netcan.github.io/
     > Mail: 1469709759@qq.com
     > Created Time: 2020-04-21 23:34
 ************************************************************************/

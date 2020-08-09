@@ -2,7 +2,7 @@
     > File Name: PartiallyOrdering.cpp
     > Author: Netcan
     > Descripton: PartiallyOrdering, C++ morden design, Chapter 3.12
-    > Blog: http://www.netcan666.com
+    > Blog: https://netcan.github.io/
     > Mail: 1469709759@qq.com
     > Created Time: 2020-07-26 21:12
 ************************************************************************/

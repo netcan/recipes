@@ -2,7 +2,7 @@
     > File Name: Shader.hpp
     > Author: Netcan
     > Descripton: Shader.hpp for encapsulation glshader
-    > Blog: http://www.netcan666.com
+    > Blog: https://netcan.github.io/
     > Mail: 1469709759@qq.com
     > Created Time: 2020-04-21 23:34
 ************************************************************************/

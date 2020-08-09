@@ -2,7 +2,7 @@
     > File Name: Datatable.cpp
     > Author: Netcan
     > Descripton: constexpr Datatable
-    > Blog: http://www.netcan666.com
+    > Blog: https://netcan.github.io/
     > Mail: 1469709759@qq.com
     > Created Time: 2020-07-14 21:16
 ************************************************************************/

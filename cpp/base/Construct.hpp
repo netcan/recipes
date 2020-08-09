@@ -1,7 +1,7 @@
 /*************************************************************************
     > File Name: Construct.hpp
     > Author: Netcan
-    > Blog: http://www.netcan666.com
+    > Blog: https://netcan.github.io/
     > Mail: 1469709759@qq.com
     > Created Time: 2019/08/14 22:04
 ************************************************************************/
