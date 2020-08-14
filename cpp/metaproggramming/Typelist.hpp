@@ -123,3 +123,66 @@ public:
     using type = typename L::template prepend<BEST>;
 };
 
+template<typename IN, template <typename> class F, typename OUT = TypeList<>, typename = void>
+struct Map {
+    using type = OUT;
+};
+
+template<typename IN, template <typename> class F, typename OUT>
+class Map<IN, F, OUT, std::void_t<typename IN::head>> {
+    using outputT = typename F<typename IN::head>::type;
+public:
+    using type = typename Map<typename IN::tails, F, typename OUT::template appendTo<outputT>>::type;
+};
+
+template<typename IN, template <typename> class F, typename OUT = TypeList<>, typename = void>
+struct Filter {
+    using type = OUT;
+};
+
+template<typename IN, template <typename> class F, typename OUT>
+class Filter<IN, F, OUT, std::void_t<typename IN::head>> {
+    using H = typename IN::head;
+public:
+    using type = typename std::conditional_t<F<H>::value,
+          Filter<typename IN::tails, F, typename OUT::template appendTo<H>>,
+          Filter<typename IN::tails, F, OUT>>::type;
+};
+
+template<typename IN, typename R, typename OUT = TypeList<>, typename = void>
+struct EraseAll {
+    using type = OUT;
+};
+
+template<typename IN, typename R, typename OUT>
+class EraseAll<IN, R, OUT, std::void_t<typename IN::head>> {
+    template<typename T>
+    struct IsDifferR { static constexpr bool value = !std::is_same_v<T, R>; };
+public:
+    using type = typename Filter<IN, IsDifferR>::type;
+};
+
+template<typename IN, typename = void>
+struct Unique {
+    using type = IN;
+};
+
+template<typename IN>
+class Unique<IN, std::void_t<typename IN::head>> {
+    using tails = typename Unique<typename IN::tails>::type;
+    using eraseHead = typename EraseAll<tails, typename IN::head>::type;
+public:
+    using type = typename eraseHead::template prepend<typename IN::head>;
+};
+
+template<typename IN, typename E, typename = void>
+struct Elem {
+    static constexpr bool value = false;
+};
+
+template<typename IN, typename E>
+struct Elem<IN, E, std::void_t<typename IN::head>> {
+    static constexpr bool value =
+        std::is_same_v<typename IN::head, E> ||
+        Elem<typename IN::tails, E>::value;
+};
