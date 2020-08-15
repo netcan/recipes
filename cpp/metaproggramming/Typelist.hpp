@@ -16,8 +16,13 @@ template <typename ...Ts>
 struct TypeList {
     using type = TypeList<Ts...>;
     static constexpr size_t size = 0;
+
     template <typename ...T>
-    using appendTo = typename TypeList<T...>::type;
+    struct append {
+        using type = TypeList<T...>;
+    };
+    template <typename ...T>
+    using appendTo = typename append<T...>::type;
 
     template <typename T>
     using prepend = typename TypeList<T>::type;
@@ -34,7 +39,11 @@ struct TypeList<Head, Tails...> {
     static constexpr size_t size = sizeof...(Tails) + 1;
 
     template <typename ...Ts>
-    using appendTo = typename TypeList<Head, Tails..., Ts...>::type;
+    struct append {
+        using type = TypeList<Head, Tails..., Ts...>;
+    };
+    template <typename ...Ts>
+    using appendTo = typename append<Ts...>::type;
 
     template <typename T>
     using prepend = typename TypeList<T, Head, Tails...>::type;
@@ -185,4 +194,18 @@ struct Elem<IN, E, std::void_t<typename IN::head>> {
     static constexpr bool value =
         std::is_same_v<typename IN::head, E> ||
         Elem<typename IN::tails, E>::value;
+};
+
+struct Nil;
+template<typename IN, template <typename> class F, typename = void>
+struct FindBy {
+    using type = Nil;
+};
+
+template<typename IN, template <typename> class F>
+struct FindBy<IN, F, std::void_t<typename IN::head>> {
+    using type = std::conditional_t<
+        F<typename IN::head>::value,
+        typename IN::head,
+        typename FindBy<typename IN::tails, F>::type>;
 };

@@ -7,32 +7,39 @@
     > Created Time: 2020-08-14 20:57
 ************************************************************************/
 #include <tuple>
+#include <cstdio>
 #include "Typelist.hpp"
 
-template<typename...> struct dump;
+//////////////////////////////////////////////////////////////////
+// TaskDSL Implementation
+template<auto J>
+struct JobWrapper {
+    void operator()() {
+        return J();
+    }
+};
 
-template<typename T>
+template<typename LINK>
 struct Connection {};
 
 template<typename Job1, typename Job2>
-struct Connection<auto(Job1) -> Job2> {
+struct Connection<auto(*)(Job1) -> auto(*)(Job2) -> void> {
     using FROM = Job1;
     using DST = Job2;
 };
 
 template <typename... LINKS>
-struct Task {
-    template<typename T>
-    struct GetFrom { using type = typename T::FROM; };
-    template<typename T>
-    struct GetDst { using type = typename T::DST; };
+class Task {
+    template<typename Con>
+    struct GetFrom { using type = typename Con::FROM; };
+    template<typename Con>
+    struct GetDst { using type = typename Con::DST; };
 
     using Connections = TypeList<Connection<LINKS>...>;
     using FromJobs = typename Map<Connections, GetFrom>::type;
     using Jobs = typename Map<Connections, GetDst, FromJobs>::type;
     using AllJobs = typename Unique<Jobs>::type;
     static constexpr size_t JobNums = AllJobs::size;
-    static_assert(JobNums == 3, "");
 
     template<typename Job>
     class FindJobDependencies {
@@ -46,49 +53,89 @@ struct Task {
     template <typename DEP>
     struct Dependency {
         struct type {
-            using Node = typename DEP::head;
+            using Job = typename DEP::head;
             using Dependencies = typename DEP::tails;
         };
     };
-
-    using AllDependency = typename Map<
-            typename Map<AllJobs, FindJobDependencies>::type,
+    using JobDependenciesMap = typename Map<
+            typename Map<AllJobs, FindJobDependencies>::type, // Dst Job List of List
             Dependency>::type;
 
-    // dump<typename AllJobs::head> d;
-    // dump<AllDependency> dd;
+    template<typename DEPS, typename OUT = TypeList<>, typename = void>
+    struct FindAllDependencies {
+        using type = OUT; // 边界case，结束递归时直接输出结果
+    };
+    template<typename DEPS, typename OUT>
+    class FindAllDependencies<DEPS, OUT, std::void_t<typename DEPS::head>> {
+        using J = typename DEPS::head; // 取出后继表中第一个Job
+        template <typename DEP> struct JDepsCond
+        { static constexpr bool value = std::is_same_v<typename DEP::Job, J>; };
+        using DepsResult = typename FindBy<JobDependenciesMap, JDepsCond>::type; // 从邻接表查找Job的后继节点列表
+            using JDeps = typename Unique<typename DepsResult::Dependencies>::type; // 去重操作
+    public:
+        using type = typename FindAllDependencies<
+            typename JDeps::template exportTo<DEPS::tails::template append>::type,
+            typename OUT::template appendTo<J>>::type; // 将得到的后继列表合并，进一步递归展开，并输出当前Job到列表
+    };
 
-    // template<typename J, typename D>
-    // struct Adjacency {
-        // using type = std::pair<J, TypeList<D>>;
-    // };
+    template<typename DEP>
+    struct FindJobAllDependencies {
+        struct type {
+            using Job = typename DEP::Job;
+            using AllDependencies = typename FindAllDependencies<typename DEP::Dependencies>::type;
+        };
+    };
+    template<typename DEP>
+    struct GetJob { using type = typename DEP::Job; };
+    using JobAllDependenciesMap = typename Map<JobDependenciesMap, FindJobAllDependencies>::type;
 
+    template<typename LHS, typename RHS>
+    struct JobCmp {
+        static constexpr bool value =
+            Elem<typename LHS::AllDependencies, typename RHS::Job>::value;
+    };
+    using SortedJobs = typename Map<typename Sort<JobAllDependenciesMap, JobCmp>::type, GetJob>::type;
 
+    template<typename ...Jobs>
+    struct Runable { };
+    template<auto ...J>
+    struct Runable<JobWrapper<J>...> {
+        void operator()() {
+            return (JobWrapper<J>{}(),...);
+        }
+    };
 
-    // dump<typename Unique<TypeList<int, int, int>>::type> d;
-
+public:
+    void Run() {
+        using Jobs = typename SortedJobs::template exportTo<Runable>;
+        return Jobs{}();
+    }
 };
 
-template<typename J>
-struct Job {
-    using type = J;
-};
+#define __task(...) Task<__VA_ARGS__>{}
+#define __job(job) auto(*) (JobWrapper<job>)
+#define __link(link) link -> void
 
-#define __task(...) Task<__VA_ARGS__>
-#define __src(job) auto (Job<job>)
-#define __dst(job) Job<job>
+//////////////////////////////////////////////////////////////////
+// TaskDSL Usecase
 
-
-struct Job0 {};
-struct Job1 {};
-struct Job2 {};
-
-using tasks = __task(
-        __src(Job0) -> __dst(Job1),
-        __src(Job1) -> __dst(Job2));
+void Meat()
+{ puts("肉..."); }
+void Garnish()
+{ puts("配菜..."); }
+void Plating()
+{ puts("装配..."); }
+void Servce1()
+{ puts("送菜1..."); }
+void Servce2()
+{ puts("送菜2..."); }
 
 int main(int argc, char** argv) {
-    tasks ts;
+    __task(
+        __link(__job(Plating) -> __job(Servce1)),
+        __link(__job(Meat)    -> __job(Plating)),
+        __link(__job(Plating) -> __job(Servce2)),
+        __link(__job(Garnish) -> __job(Plating))).Run();
 
     return 0;
 }
