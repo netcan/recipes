@@ -3,6 +3,7 @@
 add_executable(Fibonacci Fibonacci.cpp)
 add_executable(ADL ADL.cpp)
 add_executable(TaskDSL TaskDSL.cpp)
+add_executable(TaskDSLv2 TaskDSLv2.cpp)
 add_executable(ConstexprStr ConstexprStr.cpp)
 add_executable(StaticRefl reflection/StaticRefl.cpp)
 add_executable(StaticRefl_TupleImpl reflection/StaticRefl_TupleImpl.cpp)
