@@ -36,18 +36,18 @@ class Task {
     struct GetDst { using type = typename Con::DST; };
 
     using Connections = TypeList<Connection<LINKS>...>;
-    using FromJobs = typename Map<Connections, GetFrom>::type;
-    using Jobs = typename Map<Connections, GetDst, FromJobs>::type;
-    using AllJobs = typename Unique<Jobs>::type;
+    using FromJobs = Map_t<Connections, GetFrom>;
+    using DstJobs = Map_t<Connections, GetDst>;
+    using AllJobs = Unique_t<Concat_t<FromJobs, DstJobs>>;
     static constexpr size_t JobNums = AllJobs::size;
 
     template<typename Job>
     class FindJobDependencies {
         template<typename C> struct Dependency
         { static constexpr bool value = std::is_same_v<typename GetFrom<C>::type, Job>; };
-        using JobDependencies = typename Filter<Connections, Dependency>::type;
+        using JobDependencies = Filter_t<Connections, Dependency>;
     public:
-        using type = typename Map<JobDependencies, GetDst>::type::template prepend<Job>; // prepend FROM node to result front
+        using type = typename Map_t<JobDependencies, GetDst>::template prepend<Job>; // prepend FROM node to result front
     };
 
     template <typename DEP>
@@ -57,9 +57,9 @@ class Task {
             using Dependencies = typename DEP::tails;
         };
     };
-    using JobDependenciesMap = typename Map<
-            typename Map<AllJobs, FindJobDependencies>::type, // Dst Job List of List
-            Dependency>::type;
+    using JobDependenciesMap = Map_t<
+            Map_t<AllJobs, FindJobDependencies>, // Dst Job List of List
+            Dependency>;
 
     template<typename DEPS, typename OUT = TypeList<>, typename = void>
     struct FindAllDependencies {
@@ -70,8 +70,8 @@ class Task {
         using J = typename DEPS::head; // 取出后继表中第一个Job
         template <typename DEP> struct JDepsCond
         { static constexpr bool value = std::is_same_v<typename DEP::Job, J>; };
-        using DepsResult = typename FindBy<JobDependenciesMap, JDepsCond>::type; // 从邻接表查找Job的后继节点列表
-            using JDeps = typename Unique<typename DepsResult::Dependencies>::type; // 去重操作
+        using DepsResult = FindBy_t<JobDependenciesMap, JDepsCond>; // 从邻接表查找Job的后继节点列表
+            using JDeps = Unique_t<typename DepsResult::Dependencies>; // 去重操作
     public:
         using type = typename FindAllDependencies<
             typename JDeps::template exportTo<DEPS::tails::template append>::type,
@@ -87,14 +87,14 @@ class Task {
     };
     template<typename DEP>
     struct GetJob { using type = typename DEP::Job; };
-    using JobAllDependenciesMap = typename Map<JobDependenciesMap, FindJobAllDependencies>::type;
+    using JobAllDependenciesMap = Map_t<JobDependenciesMap, FindJobAllDependencies>;
 
     template<typename LHS, typename RHS>
     struct JobCmp {
         static constexpr bool value =
-            Elem<typename LHS::AllDependencies, typename RHS::Job>::value;
+            Elem_v<typename LHS::AllDependencies, typename RHS::Job>;
     };
-    using SortedJobs = typename Map<typename Sort<JobAllDependenciesMap, JobCmp>::type, GetJob>::type;
+    using SortedJobs = Map_t<typename Sort<JobAllDependenciesMap, JobCmp>::type, GetJob>;
 
     template<typename ...Jobs>
     struct Runable { };

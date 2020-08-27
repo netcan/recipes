@@ -26,7 +26,7 @@ class GroupEntriesTrait<ES, GS, std::void_t<typename ES::head>> {
             sizeof(typename ES::head::type) == sizeof(typename E::type) &&
             alignof(typename ES::head::type) == alignof(typename E::type);
     };
-    using group = typename Split<ES, GroupPrediction>::type;
+    using group = Partition_t<ES, GroupPrediction>;
     using satisfied = typename group::satisfied;
     using rest = typename group::rest;
 public:

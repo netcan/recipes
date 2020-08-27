@@ -52,102 +52,93 @@ struct TypeList<Head, Tails...> {
     using exportTo = T<Head, Tails...>;
 };
 
-static_assert(std::is_same_v<TypeList<int, char>::type,
-        TypeList<int>::appendTo<char>::type>);
-
 template<typename IN,
     template<typename> typename P,
     typename S = TypeList<>,
     typename R = TypeList<>,
     typename = void>
-struct Split {
+struct Partition {
     struct type {
         using satisfied = S;
         using rest = R;
     };
 };
 
+template<typename IN, template<typename> class P>
+using Partition_t = typename Partition<IN, P>::type;
+
 template<typename IN, template<typename> typename P, typename S, typename R>
-class Split<IN, P, S, R, std::enable_if_t<P<typename IN::head>::value>> {
+class Partition<IN, P, S, R, std::enable_if_t<P<typename IN::head>::value>> {
     using satisfied = typename S::template appendTo<typename IN::head>::type;
 public:
-    using type = typename Split<typename IN::tails, P, satisfied, R>::type;
+    using type = typename Partition<typename IN::tails, P, satisfied, R>::type;
 };
 
 template<typename IN,
     template<typename> typename P,
     typename S,
     typename R>
-class Split<IN, P, S, R, std::enable_if_t<!P<typename IN::head>::value> >  {
+class Partition<IN, P, S, R, std::enable_if_t<!P<typename IN::head>::value> >  {
     using rest = typename R::template appendTo<typename IN::head>::type;
 public:
-    using type = typename Split<typename IN::tails, P, S, rest>::type;
+    using type = typename Partition<typename IN::tails, P, S, rest>::type;
 };
 
-// Replace once
-template<typename IN, typename FROM, typename TO, typename OUT = TypeList<>, typename = void>
-struct Replace {
-    using type = OUT;
+template<typename... IN>
+struct Concat;
+
+template<typename... IN>
+using Concat_t = typename Concat<IN...>::type;
+
+template<typename IN, typename IN2>
+struct Concat<IN, IN2> {
+    using type = typename IN2::template exportTo<IN::template append>::type;
 };
 
-template<typename IN, typename OUT, typename TO>
-class Replace<IN, typename IN::head, TO, OUT, std::void_t<typename IN::head>> {
-    using R = typename OUT::template appendTo<TO>;
-public:
-    using type = typename IN::tails::template exportTo<R::template appendTo>::type;
-};
-
-template<typename IN, typename FROM, typename OUT, typename TO>
-class Replace<IN, FROM, TO, OUT, std::void_t<typename IN::head>> {
-    using C = typename OUT::template appendTo<typename IN::head>;
-public:
-    using type = typename Replace<typename IN::tails, FROM, TO, C>::type;
-};
-
-template<typename IN, template<typename, typename> class CMP, typename OUT = typename IN::head, typename = void>
-struct SelectBest {
-    using type = OUT;
-};
-
-template<typename IN, template<typename, typename> class CMP, typename OUT>
-struct SelectBest<IN, CMP, OUT, std::void_t<typename IN::head>> {
-    using type = typename SelectBest<typename IN::tails, CMP,
-          std::conditional_t<
-              CMP<typename IN::head, OUT>::value,
-                typename IN::head,
-                OUT>>::type;
-};
-
-template<typename IN, template<typename, typename> class CMP, typename = void>
-struct Sort {
-    using type = IN;
+template<typename IN, typename IN2, typename ...Rest>
+struct Concat<IN, IN2, Rest...> {
+    using type = Concat_t<Concat_t<IN, IN2>, Rest...>;
 };
 
 template<typename IN, template<typename, typename> class CMP>
-class Sort<IN, CMP, std::void_t<typename IN::head>> {
-    using BEST = typename SelectBest<typename IN::tails, CMP, typename IN::head>::type;
-    using REST = typename Replace<typename IN::tails, BEST, typename IN::head>::type;
-    using L = typename Sort<REST, CMP>::type;
-public:
-    using type = typename L::template prepend<BEST>;
+struct Sort {
+    using type = TypeList<>;
 };
 
-template<typename IN, template <typename> class F, typename OUT = TypeList<>, typename = void>
+template<typename IN, template<typename, typename> class CMP>
+using Sort_t = typename Sort<IN, CMP>::type;
+
+template<template<typename, typename> class CMP, typename H, typename ...Ts>
+class Sort<TypeList<H, Ts...>, CMP> {
+    template<typename E>
+    struct LT { static constexpr bool value = CMP<E, H>::value; };
+    using P = Partition_t<TypeList<Ts...>, LT>;
+    using SmallerSorted = Sort_t<typename P::satisfied, CMP>;
+    using BiggerSorted = Sort_t<typename P::rest, CMP>;
+public:
+    using type = Concat_t<typename SmallerSorted::template appendTo<H>, BiggerSorted>;
+};
+
+template<typename IN, template <typename> class F>
 struct Map {
-    using type = OUT;
+    using type = TypeList<>;
 };
 
-template<typename IN, template <typename> class F, typename OUT>
-class Map<IN, F, OUT, std::void_t<typename IN::head>> {
-    using outputT = typename F<typename IN::head>::type;
-public:
-    using type = typename Map<typename IN::tails, F, typename OUT::template appendTo<outputT>>::type;
+template<typename IN, template <typename> class F>
+using Map_t = typename Map<IN, F>::type;
+
+template<template <typename> class F, typename ...Ts>
+struct Map<TypeList<Ts...>, F> {
+    using type = TypeList<typename F<Ts>::type...>;
 };
 
 template<typename IN, template <typename> class F, typename OUT = TypeList<>, typename = void>
 struct Filter {
     using type = OUT;
 };
+
+template<typename IN, template <typename> class F>
+using Filter_t = typename Filter<IN, F>::type;
 
 template<typename IN, template <typename> class F, typename OUT>
 class Filter<IN, F, OUT, std::void_t<typename IN::head>> {
@@ -158,18 +149,6 @@ public:
           Filter<typename IN::tails, F, OUT>>::type;
 };
 
-template<typename IN, typename R, typename OUT = TypeList<>, typename = void>
-struct EraseAll {
-    using type = OUT;
-};
-
-template<typename IN, typename R, typename OUT>
-class EraseAll<IN, R, OUT, std::void_t<typename IN::head>> {
-    template<typename T>
-    struct IsDifferR { static constexpr bool value = !std::is_same_v<T, R>; };
-public:
-    using type = typename Filter<IN, IsDifferR>::type;
-};
 
 template<typename IN, typename = void>
 struct Unique {
@@ -177,23 +156,33 @@ struct Unique {
 };
 
 template<typename IN>
+using Unique_t = typename Unique<IN>::type;
+
+template<typename IN>
 class Unique<IN, std::void_t<typename IN::head>> {
-    using tails = typename Unique<typename IN::tails>::type;
-    using eraseHead = typename EraseAll<tails, typename IN::head>::type;
+    template<typename T>
+    struct IsDifferR {
+        template<typename R>
+        struct apply { static constexpr bool value = !std::is_same_v<T, R>; };
+    };
+
+    using tails = Unique_t<typename IN::tails>;
+    using eraseHead = Filter_t<tails, IsDifferR<typename IN::head>::template apply>;
 public:
     using type = typename eraseHead::template prepend<typename IN::head>;
 };
 
-template<typename IN, typename E, typename = void>
+template<typename IN, typename E>
 struct Elem {
     static constexpr bool value = false;
 };
 
 template<typename IN, typename E>
-struct Elem<IN, E, std::void_t<typename IN::head>> {
-    static constexpr bool value =
-        std::is_same_v<typename IN::head, E> ||
-        Elem<typename IN::tails, E>::value;
+constexpr bool Elem_v = Elem<IN, E>::value;
+
+template<typename E, typename ...Ts>
+struct Elem<TypeList<Ts...>, E> {
+    static constexpr bool value = (std::is_same_v<E, Ts> || ...);
 };
 
 struct Nil;
@@ -201,6 +190,9 @@ template<typename IN, template <typename> class F, typename = void>
 struct FindBy {
     using type = Nil;
 };
+
+template<typename IN, template <typename> class F>
+using FindBy_t = typename FindBy<IN, F>::type;
 
 template<typename IN, template <typename> class F>
 struct FindBy<IN, F, std::void_t<typename IN::head>> {

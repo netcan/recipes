@@ -8,6 +8,7 @@ add_executable(StaticRefl reflection/StaticRefl.cpp)
 add_executable(StaticRefl_TupleImpl reflection/StaticRefl_TupleImpl.cpp)
 add_executable(PartiallyOrdering PartiallyOrdering)
 add_executable(Datatable Datatable.cpp)
+add_executable(TypelistTest TypelistTest.cpp)
 
 add_executable(Relational Relational.cpp)
 target_link_libraries(Relational ${GTEST_BOTH_LIBRARIES})
