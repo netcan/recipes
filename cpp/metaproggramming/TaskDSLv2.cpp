@@ -11,22 +11,26 @@
 #include "Typelist.hpp"
 
 template<typename T>
-struct Connection;
+class Connection;
 
 struct JobSignature {};
 
 template<typename J, typename = void>
 struct JobTrait;
 
+// a job self
 template<typename J>
 struct JobTrait<J, std::void_t<std::is_base_of<JobSignature, J>>> {
-    using JobType = TypeList<J>;
+    using JobList = TypeList<J>;
 };
 
 template<typename F, typename T>
-struct Connection<auto(F) -> T> {
-    using FROM = typename JobTrait<F>::JobType;
-    using TO = typename JobTrait<T>::JobType;
+class Connection<auto(F) -> T> {
+    using FROMs = typename JobTrait<F>::JobList;
+    using TOs = typename JobTrait<T>::JobList;
+public:
+    using FromJobList = Unique_t<Flatten_t<FROMs>>;
+    using ToJobList = Unique_t<Flatten_t<TOs>>;
 };
 
 struct Job;
@@ -34,23 +38,49 @@ template<typename J>
 struct JobCb {
     using type = JobCb<J>;
     using JobType = J;
-    JobCb(): job_(JobType::Create()) {};
+    std::unique_ptr<Job> job_{JobType::Create()};
+};
 
-private:
-    std::unique_ptr<Job> job_;
+template<typename F, typename T>
+struct OneToOneLink {
+    using FromJob = F;
+    using ToJob = T;
 };
 
 template<typename ...Links>
-struct TaskAnalyzer {
-    using AllJobs = Unique_t<Concat_t<typename Connection<Links>::FROM..., typename Connection<Links>::TO...>>;
+class TaskAnalyzer {
+    template<typename FROMs, typename TOs, typename = void>
+    struct BuildOneToOneLink;
+
+    template<typename ...Fs, typename Ts>
+    struct BuildOneToOneLink<TypeList<Fs...>, Ts> {
+        using type = Concat_t<typename BuildOneToOneLink<Fs, Ts>::type...>;
+    };
+
+    template<typename F, typename... Ts>
+    struct BuildOneToOneLink<F, TypeList<Ts...>, std::enable_if_t<!IsTypeList_v<F>>> {
+        using type = TypeList<OneToOneLink<F, Ts>...>;
+    };
+
+    template<typename Link>
+    class OneToOneLinkSetF{
+        using FromJobList = typename Link::FromJobList;
+        using ToJobList = typename Link::ToJobList;
+    public:
+        using type = typename BuildOneToOneLink<FromJobList, ToJobList>::type;
+    };
+
+public:
+    using AllJobs = Unique_t<Concat_t<typename Connection<Links>::FromJobList..., typename Connection<Links>::ToJobList...>>;
+    using OneToOneLinkSet = Unique_t<Map_t<TypeList<Connection<Links>...>, OneToOneLinkSetF>>;
 };
 
 template<typename ...Links>
-struct Task {
-private:
+class Task {
     using AllJobs = typename TaskAnalyzer<Links...>::AllJobs;
-    using JobsCb = Map_t<AllJobs, JobCb>;
+    using OneToOneLinkSet = typename TaskAnalyzer<Links...>::OneToOneLinkSet;
 private:
+    using JobsCb = Map_t<AllJobs, JobCb>;
     typename JobsCb::template exportTo<std::tuple> jobsCb_;
 };
 
