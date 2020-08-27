@@ -52,6 +52,19 @@ struct TypeList<Head, Tails...> {
     using exportTo = T<Head, Tails...>;
 };
 
+template<typename IN>
+struct IsTypeList {
+    constexpr static bool value = false;
+};
+
+template<typename IN>
+constexpr bool IsTypeList_v = IsTypeList<IN>::value;
+
+template<typename ...Ts>
+struct IsTypeList<TypeList<Ts...>> {
+    constexpr static bool value = true;
+};
+
 template<typename IN,
     template<typename> typename P,
     typename S = TypeList<>,
@@ -90,6 +103,13 @@ struct Concat;
 template<typename... IN>
 using Concat_t = typename Concat<IN...>::type;
 
+template<> struct Concat<> {
+    using type = TypeList<>;
+};
+template<typename IN> struct Concat<IN> {
+    using type = IN;
+};
+
 template<typename IN, typename IN2>
 struct Concat<IN, IN2> {
     using type = typename IN2::template exportTo<IN::template append>::type;
@@ -99,6 +119,25 @@ template<typename IN, typename IN2, typename ...Rest>
 struct Concat<IN, IN2, Rest...> {
     using type = Concat_t<Concat_t<IN, IN2>, Rest...>;
 };
+
+template<typename IN, typename OUT = TypeList<>, typename = void>
+struct Flatten {
+    using type = OUT;
+};
+
+template<typename IN>
+using Flatten_t = typename Flatten<IN>::type;
+
+template<typename IN, typename OUT>
+struct Flatten<IN, OUT, std::enable_if_t<IsTypeList_v<typename IN::head>>> {
+    using type = typename Flatten<typename IN::tails, Concat_t<OUT, Flatten_t<typename IN::head>>>::type;
+};
+
+template<typename IN, typename OUT>
+struct Flatten<IN, OUT, std::enable_if_t<! IsTypeList_v<typename IN::head>>> {
+    using type = typename Flatten<typename IN::tails, typename OUT::template appendTo<typename IN::head>>::type;
+};
+
 
 template<typename IN, template<typename, typename> class CMP>
 struct Sort {
