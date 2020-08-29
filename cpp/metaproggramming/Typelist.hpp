@@ -6,6 +6,7 @@
     > Mail: 1469709759@qq.com
     > Created Time: 2020-07-26 21:10
 ************************************************************************/
+#pragma once
 #include <type_traits>
 #include <cstddef>
 
