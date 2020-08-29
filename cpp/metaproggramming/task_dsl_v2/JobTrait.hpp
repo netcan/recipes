@@ -8,7 +8,10 @@
 ************************************************************************/
 #pragma once
 #include "Typelist.hpp"
+#include <cstdio>
 
+///////////////////////////////////////////////////////////////////////////////
+struct JobSignature {};
 struct Job {
     Job() = default;
     Job(const char* name): name_(name) { printf("%s Created\n", name); }
@@ -18,6 +21,7 @@ private:
     const char* name_{};
 };
 
+///////////////////////////////////////////////////////////////////////////////
 template<typename J>
 struct JobCb {
     using type = JobCb<J>;
@@ -25,13 +29,14 @@ struct JobCb {
     Job job_{JobType{}()};
 };
 
+///////////////////////////////////////////////////////////////////////////////
 template<typename J, typename = void>
 struct JobTrait;
 
-struct JobSignature {};
 template<typename ...J>
-struct SomeJob
-{ using JobList = TypeList<J...>; };
+struct SomeJob {
+    using JobList = Unique_t<Flatten_t<TypeList<typename JobTrait<J>::JobList...>>>;
+};
 
 // a job self
 template<typename J>

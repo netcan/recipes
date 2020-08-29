@@ -12,12 +12,17 @@
 #include "TupleUtils.hpp"
 #include "Connection.hpp"
 #include "TaskAnalyzer.hpp"
-template<typename ...Links>
+
+///////////////////////////////////////////////////////////////////////////////
+template<typename ...Chains>
 class TaskDsl {
-    using AllJobs = typename TaskAnalyzer<Links...>::AllJobs;
+    using Links = Unique_t<Flatten_t<TypeList<typename Chain<Chains>::type...>>>;
+    using Analyzer = typename Links::template exportTo<TaskAnalyzer>;
+
+    using AllJobs = typename Analyzer::AllJobs;
     using JobsCb = typename Map_t<AllJobs, JobCb>::template exportTo<std::tuple>;
 
-    using OneToOneLinkSet = typename TaskAnalyzer<Links...>::OneToOneLinkSet;
+    using OneToOneLinkSet = typename Analyzer::OneToOneLinkSet;
     template <typename OneToOneLink>
     struct OneToOneLinkInstanceType
     { using type = typename OneToOneLink::template InstanceType<JobsCb>; };
@@ -37,12 +42,15 @@ private:
     OneToOneLinkInstances links_;
 };
 
-#define __some_job(...) SomeJob<__VA_ARGS__>
-#define __fork(...) __some_job(__VA_ARGS__)
-#define __merge(...) auto(__some_job(__VA_ARGS__))
-#define __link(Job) auto(Job)
-#define __taskbuild(...) TaskDsl<__VA_ARGS__>{}
+///////////////////////////////////////////////////////////////////////////////
 #define __def_task(name, ...)         \
   struct name: JobSignature {         \
     auto operator()() __VA_ARGS__     \
   }
+
+#define __some_job(...) auto(*)(SomeJob<__VA_ARGS__>)
+#define __fork(...) __some_job(__VA_ARGS__)
+#define __merge(...) __some_job(__VA_ARGS__)
+#define __job(Job) auto(*)(Job)
+#define __chain(link) link -> void
+#define __taskbuild(...) TaskDsl<__VA_ARGS__>{}

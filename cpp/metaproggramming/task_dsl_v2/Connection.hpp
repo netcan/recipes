@@ -8,16 +8,35 @@
 ************************************************************************/
 #pragma once
 #include "Typelist.hpp"
-template<typename T>
-class Connection;
+#include "TupleUtils.hpp"
+#include "JobTrait.hpp"
+#include <tuple>
 
 template<typename F, typename T>
-class Connection<auto(F) -> T> {
+class Connection {
     using FROMs = typename JobTrait<F>::JobList;
     using TOs = typename JobTrait<T>::JobList;
 public:
     using FromJobList = Unique_t<Flatten_t<FROMs>>;
     using ToJobList = Unique_t<Flatten_t<TOs>>;
+};
+
+template<typename T, typename OUT = TypeList<>>
+struct Chain;
+
+template<typename F, typename OUT>
+struct Chain<auto(*)(F) -> void, OUT> {
+    using From = F;
+    using type = OUT;
+};
+
+template<typename F, typename T, typename OUT>
+struct Chain<auto(*)(F) -> T, OUT> {
+private:
+    using To = typename Chain<T, OUT>::From;
+public:
+    using From = F;
+    using type = typename Chain<T, typename OUT::template appendTo<Connection<From, To>>>::type;
 };
 
 template<typename FROM, typename TO>
