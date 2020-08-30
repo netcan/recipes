@@ -31,7 +31,7 @@
     struct st {                                                             \
         template <typename, size_t> struct FIELD;                           \
         static constexpr size_t _field_count_ = GET_ARG_COUNT(__VA_ARGS__); \
-        PASTE(FOR_EACH_, GET_ARG_COUNT(__VA_ARGS__)) (FIELD_EACH, 0, __VA_ARGS__) \
+        PASTE(REPEAT_, GET_ARG_COUNT(__VA_ARGS__)) (FIELD_EACH, 0, __VA_ARGS__) \
     };                                                                      \
 
 template<typename T, typename F, size_t... Is>

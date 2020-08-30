@@ -15,7 +15,7 @@
 #include "MetaMacro.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
-template<typename ...Chains>
+template<typename = void, typename ...Chains>
 class TaskDsl {
     using Links = Unique_t<Flatten_t<TypeList<typename Chain<Chains>::type...>>>;
     using Analyzer = typename Links::template exportTo<TaskAnalyzer>;
@@ -45,21 +45,13 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 #define __def_task(name, ...)         \
-  struct name: JobSignature {         \
-    auto operator()() __VA_ARGS__     \
-  }
+    struct name: JobSignature {         \
+        auto operator()() __VA_ARGS__     \
+    }; \
 
-#define CAPTURE_ARG(n, arg) decltype(arg) arg;
-#define __captures(...) \
-    struct PASTE(Captures, __COUNTER__) { \
-        struct Args { \
-            PASTE(FOR_EACH_, GET_ARG_COUNT(__VA_ARGS__)) (CAPTURE_ARG, 0, __VA_ARGS__) \
-        }; \
-    }
-
+#define __chain(n, link) ,link -> void
 #define __some_job(...) auto(*)(SomeJob<__VA_ARGS__>)
 #define __fork(...) __some_job(__VA_ARGS__)
 #define __merge(...) __some_job(__VA_ARGS__)
 #define __job(Job) auto(*)(Job)
-#define __chain(link) link -> void
-#define __taskbuild(...) TaskDsl<__VA_ARGS__>{}
+#define __taskbuild(...) TaskDsl<void PASTE(REPEAT_, GET_ARG_COUNT(__VA_ARGS__)) (__chain, 0, __VA_ARGS__)>{}

@@ -6,7 +6,6 @@
     > Mail: 1469709759@qq.com
     > Created Time: 2020-08-27 21:28
 ************************************************************************/
-#pragma once
 #include "TupleUtils.hpp"
 #include "Typelist.hpp"
 
