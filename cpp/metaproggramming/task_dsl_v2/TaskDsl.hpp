@@ -12,6 +12,7 @@
 #include "TupleUtils.hpp"
 #include "Connection.hpp"
 #include "TaskAnalyzer.hpp"
+#include "MetaMacro.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 template<typename ...Chains>
@@ -47,6 +48,14 @@ private:
   struct name: JobSignature {         \
     auto operator()() __VA_ARGS__     \
   }
+
+#define CAPTURE_ARG(n, arg) decltype(arg) arg;
+#define __captures(...) \
+    struct PASTE(Captures, __COUNTER__) { \
+        struct Args { \
+            PASTE(FOR_EACH_, GET_ARG_COUNT(__VA_ARGS__)) (CAPTURE_ARG, 0, __VA_ARGS__) \
+        }; \
+    }
 
 #define __some_job(...) auto(*)(SomeJob<__VA_ARGS__>)
 #define __fork(...) __some_job(__VA_ARGS__)

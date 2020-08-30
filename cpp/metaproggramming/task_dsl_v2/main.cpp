@@ -11,6 +11,12 @@
 #include "TaskDsl.hpp"
 
 int main(int argc, char** argv) {
+    int a = 1, b = 2, c = 3;
+    __captures(a, b, c);
+    auto tup = std::make_tuple(a, b, c);
+    Captures0::Args args{AggregationByTup<Captures0::Args>(tup)};
+    printf("%d %d %d\n", args.a, args.b, args.c);
+
     __def_task(A, { return Job("TaskA"); });
     __def_task(B, { return Job("TaskB"); });
     __def_task(C, { return Job("TaskC"); });
