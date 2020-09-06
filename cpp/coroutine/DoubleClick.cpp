@@ -11,19 +11,17 @@
 #include <iostream>
 #include <cstdio>
 #include <cassert>
+#include "CoroutineUtils.hpp"
 
 using namespace std::experimental;
 template<typename Signal, typename Result>
-struct StateMachine {
-    struct promise_type {
+struct StateMachine: coroutine_base<StateMachine<Signal, Result>> {
+    struct promise_type:
+        coroutine_base<StateMachine>::
+        template promise_base_type<promise_type> {
         std::optional<Result> res_;
         std::optional<Signal> recent_signal_;
-        auto initial_suspend() { return suspend_never{}; }
-        auto final_suspend() noexcept { return suspend_always{}; }
-        StateMachine get_return_object() {
-            return coroutine_handle<promise_type>::from_promise(*this);
-        }
-        void unhandled_exception() { std::terminate(); }
+
         void return_value(Result res) { res_ = res; };
 
         struct SignalAwaiter {
@@ -50,23 +48,18 @@ struct StateMachine {
     using signal = typename promise_type::signal;
 
     StateMachine(coroutine_handle<promise_type> coroutine):
-        coroutine_(coroutine) {}
-    ~StateMachine() { coroutine_.destroy(); }
-    bool done() { return coroutine_.done(); }
+        co_handle_(coroutine) {}
 
     void send_signal(Signal signal) {
-        coroutine_.promise().recent_signal_ = signal;
-        if (! coroutine_.done())
-            coroutine_.resume();
+        co_handle_.promise().recent_signal_ = signal;
+        if (! co_handle_.done()) co_handle_.resume();
     }
 
     std::optional<Result> get_result() {
-        return coroutine_.promise().res_;
+        return co_handle_.promise().res_;
     }
 
-
-private:
-    coroutine_handle<promise_type> coroutine_;
+    coroutine_handle<promise_type> co_handle_;
 };
 
 enum class ButtonPress {
@@ -94,7 +87,7 @@ int main(int argc, char** argv) {
     machine.send_signal(ButtonPress::LEFT_MOUSE);
     machine.send_signal(ButtonPress::LEFT_MOUSE);
 
-    std::cout << "machine done: " << machine.done() << std::endl;
+    std::cout << "machine done: " << machine.co_handle_.done() << std::endl;
     auto result = machine.get_result();
     std::cout << "machine result: " << result.has_value() << std::endl;
     if (result.has_value()) { std::fclose(*result); }

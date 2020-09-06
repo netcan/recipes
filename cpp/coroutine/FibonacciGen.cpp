@@ -9,18 +9,13 @@
 #include <experimental/coroutine>
 #include <tuple>
 #include <iostream>
+#include "CoroutineUtils.hpp"
 
 using namespace std::experimental;
 
-struct FiboFuture {
-    struct promise_type {
+struct FiboFuture: coroutine_base<FiboFuture> {
+    struct promise_type: promise_base_type<promise_type> {
         int value_;
-        auto initial_suspend() { return suspend_never{}; }
-        auto final_suspend() noexcept { return suspend_always{}; }
-        FiboFuture get_return_object()
-        { return {coroutine_handle<promise_type>::from_promise(*this)}; }
-        void unhandled_exception() { std::terminate(); }
-
         auto yield_value(int value) {
             value_ = value;
             return suspend_always{};
@@ -28,14 +23,12 @@ struct FiboFuture {
         void return_void() {}
     };
 
-    FiboFuture(coroutine_handle<promise_type> handle): handle_(handle) {}
+    FiboFuture(coroutine_handle<promise_type> handle): co_handle_(handle) {}
+    using coroutine_base::resume;
 
-    operator int() { return handle_.promise().value_; }
-    void resume() { if (! handle_.done()) handle_.resume(); }
-    ~FiboFuture() { handle_.destroy(); }
+    operator int() { return co_handle_.promise().value_; }
 
-private:
-    coroutine_handle<promise_type> handle_;
+    coroutine_handle<promise_type> co_handle_{};
 };
 
 FiboFuture generate_fibo() {
