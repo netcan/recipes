@@ -15,8 +15,8 @@ class coroutine_base {
 protected:
     using suspend_never = std::experimental::suspend_never;
     using suspend_always = std::experimental::suspend_always;
-    template<typename U>
-    using coroutine_handle = std::experimental::coroutine_handle<U>;
+    template<typename... U>
+    using coroutine_handle = std::experimental::coroutine_handle<U...>;
 
     template<typename Promise>
     struct promise_base_type {
