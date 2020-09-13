@@ -8,16 +8,45 @@
 ************************************************************************/
 #include "ParserCombinator.hpp"
 #include <iostream>
+#include <variant>
 using namespace ParserCombinator;
 
-int main(int argc, char** argv) {
-    const char* text = "123568";
-    auto p = many(oneOf("012345678"), 0, [](int acc, char c) -> int {
+constexpr auto eat_whitespace() {
+    return many(oneOf(" \t\r\n"),
+            std::monostate{},
+            [](auto m, auto) { return m; });
+};
+
+constexpr auto constant() {
+    constexpr auto digit = oneOf("0123456789");
+    return atLeast(digit, 0, [](int acc, char c) {
         return acc * 10 + (c - '0');
     });
-    auto r = p(text);
-    if (r.has_value()) {
-        std::cout << "(" << r->first << ", " << r->second << ")" << std::endl;
+};
+
+constexpr auto expr() {
+    constexpr auto op = eat_whitespace() < oneOf("+*") > eat_whitespace();
+    return bind(op, [](char o, ParserInput result) -> ParserResult<int> {
+        if (o == '+') {
+            return separatedBy(constant(), eat_whitespace(), 0, std::plus<int>{})(result);
+        }
+    });
+};
+
+constexpr auto lisp() {
+    return [](ParserInput s) {
+        auto p = makeCharParser('(') < expr() > makeCharParser(')');
+        return (eat_whitespace() < p > eat_whitespace())(s);
+    };
+};
+
+int main(int argc, char** argv) {
+    const char* text = R"(
+    (+ 123 456)
+    )";
+    auto r = lisp()(text);
+    if (r) {
+        std::cout << "(" << r->first << ", " << r->second << ")";
     }
 
     return 0;

@@ -19,28 +19,29 @@ namespace ParserCombinator {
 using ParserInput = std::string_view;
 template <typename T>
 using ParserResult = std::optional<std::pair<T, ParserInput>>;
+template <typename T>
+using Parser = auto(*)(ParserInput) -> ParserResult<T>;
 
 template<typename>
 struct dump;
 
 template<typename T>
-class Parser {
+class ParserTrait {
     using TDecay = std::decay_t<T>;
 public:
-    using type = typename Parser<decltype(&TDecay::operator())>::type;
+    using type = typename ParserTrait<decltype(&TDecay::operator())>::type;
 };
 
 template<typename T>
-using Parser_t = typename Parser<T>::type;
+using Parser_t = typename ParserTrait<T>::type;
 
 template<typename T, typename U>
-struct Parser<auto (T::*)(ParserInput) -> ParserResult<U>>
+struct ParserTrait<auto (T::*)(ParserInput) -> ParserResult<U>>
 { using type = U; };
 
 template<typename T, typename U>
-struct Parser<auto (T::*)(ParserInput) const -> ParserResult<U>>:
-    Parser<auto (T::*)(ParserInput) -> ParserResult<U>> {};
-
+struct ParserTrait<auto (T::*)(ParserInput) const -> ParserResult<U>>:
+    ParserTrait<auto (T::*)(ParserInput) -> ParserResult<U>> {};
 
 template<typename T>
 class CoercionTrait {
@@ -108,22 +109,18 @@ constexpr auto fmap(F&& f, P&& p) {
             Parser_t<P> >, "type mismatch!");
     return [=](ParserInput s) -> ParserResult<R> {
         auto r = p(s);
-        if (!r) return r;
+        if (!r) return std::nullopt;
         return std::make_pair(f(r->first), r->second);
     };
 }
 
-// bind :: Parser a -> (a -> ParserInput -> ParserResult a) -> Parser a
+// bind :: Parser a -> (a -> ParserInput -> ParserResult b) -> Parser b
 template<typename P, typename F>
 constexpr auto bind(P&& p, F&& f) {
-    using R = Parser_t<P>;
-    static_assert(std::is_same_v<
-            std::invoke_result_t<F, R, ParserInput>,
-            ParserResult<R>>,
-            "type mismatch!");
-    return [=](ParserInput s) {
+    using R = std::invoke_result_t<F, Parser_t<P>, ParserInput>;
+    return [=](ParserInput s) -> R {
         auto r = p(s);
-        if (!r) return r;
+        if (!r) return std::nullopt;
         return f(r->first, r->second);
     };
 }
@@ -145,9 +142,9 @@ template<typename P1, typename P2, typename F,
 constexpr auto combine(P1&& p1, P2&& p2, F&& f) {
     return [=](ParserInput s) -> ParserResult<R> {
         auto r1 = p1(s);
-        if (!r1) return r1;
+        if (!r1) return std::nullopt;
         auto r2 = p2(r1->second);
-        if (!r2) return r2;
+        if (!r2) return std::nullopt;
         return std::make_pair(f(r1->first, r2->first), r2->second);
     };
 };
@@ -168,20 +165,42 @@ constexpr auto operator<(P1&& p1, P2&& p2) {
                    [](auto, auto&& r) { return r; });
 };
 
+namespace detail {
+// foldL :: Parser a -> b -> (b -> a -> b) -> ParserInput -> ParserResult b
+template<typename P, typename R, typename F>
+constexpr auto foldL(P&& p, R acc, F&& f, ParserInput in) -> ParserResult<R> {
+    while (true) {
+        auto r = p(in);
+        if (!r) return std::make_pair(acc, in);
+        acc = f(acc, r->first);
+        in = r->second;
+    }
+};
+};
+
 // many :: Parser a -> b -> (b -> a -> b) -> Parser b
 template<typename P, typename R, typename F>
 constexpr auto many(P&& p, R&& init, F&& f) {
     static_assert(std::is_same_v<std::invoke_result_t<F, R, Parser_t<P>>, R>,
             "type mismatch!");
-    return [=](ParserInput s) -> ParserResult<R> {
-        ParserInput in = s;
-        R acc = init;
-        while (true) {
-            auto r = p(in);
-            if (!r) return std::make_pair(acc, in);
-            acc = f(acc, r->first);
-            in = r->second;
-        }
+    return [p=std::forward<P>(p),
+           f=std::forward<F>(f),
+           init=std::forward<R>(init)](ParserInput s) -> ParserResult<R> {
+        return detail::foldL(p, init, f, s);
+    };
+};
+
+// atLeast :: Parser a -> b -> (b -> a -> b) -> Parser b
+template<typename P, typename R, typename F>
+constexpr auto atLeast(P&& p, R&& init, F&& f) {
+    static_assert(std::is_same_v<std::invoke_result_t<F, R, Parser_t<P>>, R>,
+            "type mismatch!");
+    return [p=std::forward<P>(p),
+           f=std::forward<F>(f),
+           init=std::forward<R>(init)](ParserInput s) -> ParserResult<R> {
+        auto r = p(s);
+        if (!r) return std::nullopt;
+        return detail::foldL(p, f(init, r->first), f, r->second);
     };
 };
 
@@ -190,23 +209,11 @@ template<typename P, typename X, typename R, typename F>
 constexpr auto separatedBy(P&& p, X&& x, R&& init, F&& f) {
     static_assert(std::is_same_v<std::invoke_result_t<F, R, Parser_t<P>>, R>,
             "type mismatch!");
-    return [=](ParserInput s) -> ParserResult<R> {
-        ParserInput in = s;
-        R acc = init;
-        bool isX = false;
-        while (true) {
-            if (isX) {
-                auto r = x(in);
-                if (!r) return std::make_pair(acc, in);
-                in = r->second;
-            } else {
-                auto r = p(in);
-                if (!r) return std::make_pair(acc, in);
-                acc = f(acc, r->first);
-                in = r->second;
-            }
-            isX = !isX;
-        }
+    return [p=std::forward<P>(p),
+            x=std::forward<X>(x),
+            f=std::forward<F>(f),
+            init=std::forward<R>(init)](ParserInput s) -> ParserResult<R> {
+        return detail::foldL(p > x, init, f, s);
     };
 };
 
