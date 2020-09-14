@@ -262,3 +262,16 @@ struct CrossProduct<T, TypeList<Ts...>, PAIR,
     std::enable_if_t<!IsTypeList_v<T>>> {
     using type = TypeList<PAIR<T, Ts>...>;
 };
+
+template<typename IN, typename INIT, template<typename, typename> class F, typename = void>
+struct FoldL {
+    using type = INIT;
+};
+
+template<typename IN, typename INIT, template<typename, typename> class F>
+using FoldL_t = typename FoldL<IN, INIT, F>::type;
+
+template<typename IN, typename ACC, template<typename, typename> class F>
+struct FoldL<IN, ACC, F, std::void_t<typename IN::head>> {
+    using type = FoldL_t<typename IN::tails, typename F<ACC, typename IN::head>::type, F>;
+};

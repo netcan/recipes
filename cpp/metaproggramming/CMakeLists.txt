@@ -1,5 +1,6 @@
 # author by netcan
 # @shanghai 2019/09/13 08:42
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-mismatched-tags")
 add_executable(Fibonacci Fibonacci.cpp)
 add_executable(ADL ADL.cpp)
 add_executable(TaskDSL TaskDSL.cpp)
@@ -12,6 +13,7 @@ add_executable(PartiallyOrdering PartiallyOrdering)
 add_executable(Datatable Datatable.cpp)
 add_executable(TypelistTest TypelistTest.cpp)
 add_executable(Relational Relational.cpp)
+add_executable(FindShortestPath FindShortestPath.cpp)
 
 include_directories(.)
 target_link_libraries(Relational ${GTEST_BOTH_LIBRARIES})
