@@ -43,6 +43,9 @@ static_assert(std::is_same_v<
         Flatten_t<TypeList<int, TypeList<char, TypeList<double>>>>
         , TypeList<int, char, double>>);
 
+static_assert(CrossProduct_t<SomeList, SomeList, std::pair>::size ==
+        SomeList::size * SomeList::size);
+
 int main(int argc, char** argv) {
     return 0;
 }

@@ -13,6 +13,8 @@
 template<typename...>
 struct dump;
 
+struct Nil;
+
 template <typename ...Ts>
 struct TypeList {
     using type = TypeList<Ts...>;
@@ -225,7 +227,6 @@ struct Elem<TypeList<Ts...>, E> {
     static constexpr bool value = (std::is_same_v<E, Ts> || ...);
 };
 
-struct Nil;
 template<typename IN, template <typename> class F, typename = void>
 struct FindBy {
     using type = Nil;
@@ -240,4 +241,24 @@ struct FindBy<IN, F, std::void_t<typename IN::head>> {
         F<typename IN::head>::value,
         typename IN::head,
         typename FindBy<typename IN::tails, F>::type>;
+};
+
+template<typename A, typename B,
+    template<typename, typename> class PAIR, typename = void>
+struct CrossProduct;
+
+template<typename A, typename B, template<typename, typename> class PAIR>
+using CrossProduct_t = typename CrossProduct<A, B, PAIR>::type;
+
+template<typename B,
+    template<typename, typename> class PAIR,
+    typename ...Ts>
+struct CrossProduct<TypeList<Ts...>, B, PAIR> {
+    using type = Concat_t<CrossProduct_t<Ts, B, PAIR>...>;
+};
+
+template<typename T, template<typename, typename> class PAIR, typename ...Ts>
+struct CrossProduct<T, TypeList<Ts...>, PAIR,
+    std::enable_if_t<!IsTypeList_v<T>>> {
+    using type = TypeList<PAIR<T, Ts>...>;
 };
