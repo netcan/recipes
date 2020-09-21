@@ -34,6 +34,18 @@
         PASTE(REPEAT_, GET_ARG_COUNT(__VA_ARGS__)) (FIELD_EACH, 0, __VA_ARGS__) \
     };                                                                      \
 
+template<typename T, typename = void>
+struct IsRefected: std::false_type { };
+
+template<typename T>
+struct IsRefected<T,
+    std::void_t<decltype(&T::_field_count_)>>
+    : std::true_type { };
+
+template<typename T>
+constexpr static bool IsRefected_v =
+    IsRefected<T>::value;
+
 template<typename T, typename F, size_t... Is>
 inline constexpr void forEach(T&& obj, F&& f, std::index_sequence<Is...>) {
     using TDECAY = std::decay_t<T>;

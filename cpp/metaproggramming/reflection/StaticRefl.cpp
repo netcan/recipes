@@ -18,7 +18,7 @@ void dumpObj(T&& obj, const char* fieldName = "", int depth = 0) {
         }
     };
 
-    if constexpr(std::is_class_v<std::decay_t<T>>) {
+    if constexpr(IsRefected_v<std::decay_t<T>>) {
         indent();
         std::cout << fieldName << (*fieldName ? ": {" : "{") << std::endl;
         forEach(obj, [depth](auto&& fieldName, auto&& value) {
