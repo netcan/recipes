@@ -74,13 +74,10 @@ public:
 
     // Skip cycle
     template<typename CURR_NODE, typename TARGET, typename PATH>
-    class PathFinder<CURR_NODE, TARGET, PATH,
+    struct PathFinder<CURR_NODE, TARGET, PATH,
         std::enable_if_t<! std::is_same_v<CURR_NODE, TARGET> &&
             !IsTypeList_v<CURR_NODE> &&
-            Elem_v<PATH, CURR_NODE>>> {
-    public:
-        using type = TypeList<>;
-    };
+            Elem_v<PATH, CURR_NODE>>>: TypeList<> {};
 
     // Expansion NextNodes
     template<typename TARGET, typename PATH, typename ...CURR_NODE>
@@ -89,9 +86,9 @@ public:
             typename PathFinder<CURR_NODE, TARGET, PATH>::type...
         >;
         template<typename ACC, typename Path> struct PathCmp {
-            using type = std::conditional_t<ACC::size == 0, Path,
-                std::conditional_t<(ACC::size > Path::size && Path::size != 0),
-                Path, ACC>>;
+            using type = std::conditional_t<(ACC::size == 0 ||
+                    ((ACC::size > Path::size) && Path::size > 0)),
+                  Path, ACC>;
         };
     public:
         using type = FoldL_t<AllPaths, TypeList<>, PathCmp>;
