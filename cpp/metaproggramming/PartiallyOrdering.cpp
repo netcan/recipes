@@ -19,7 +19,8 @@ struct DerivedCMP {
     static constexpr bool value = std::is_base_of_v<R, L>;
 };
 
-template<typename IN, template<typename, typename> class CMP, typename OUT = typename IN::head, typename = void>
+template<typename IN, template<typename, typename> class CMP,
+    typename OUT = typename IN::head, typename = void>
 struct SelectBest {
     using type = OUT;
 };

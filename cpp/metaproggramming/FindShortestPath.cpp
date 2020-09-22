@@ -7,6 +7,9 @@
     > Created Time: 2020-09-14 21:45
 ************************************************************************/
 #include "Typelist.hpp"
+#include <utility>
+#include <cassert>
+#include <iostream>
 
 template<typename F, typename T>
 struct Connection {
@@ -14,18 +17,18 @@ struct Connection {
     using To = T;
 };
 
-template<typename C>
+template<typename C = void>
 struct ConnectionTrait {
     template<typename T> struct IsFrom
     { constexpr static bool value = std::is_same_v<typename T::From, C>; };
     template<typename T> struct IsTo
     { constexpr static bool value = std::is_same_v<typename T::To, C>; };
+    template<typename T>
+    struct GetFrom { using type = typename T::From; };
+    template<typename T>
+    struct GetTo { using type = typename T::To; };
 };
 
-template<typename C>
-struct GetFrom { using type = typename C::From; };
-template<typename C>
-struct GetTo { using type = typename C::To; };
 
 template<typename T, typename OUT = TypeList<>>
 struct Chain;
@@ -51,7 +54,7 @@ public:
 
 template<typename... Chains>
 class Graph {
-public:
+private:
     using AllConnections = Unique_t<Concat_t<typename Chain<Chains>::type...>>;
 
     template<typename F, typename TARGET,
@@ -65,7 +68,7 @@ public:
             !Elem_v<PATH, CURR_NODE>>> {
         using EdgesFrom = Filter_t<AllConnections,
                         ConnectionTrait<CURR_NODE>::template IsFrom>;
-        using NextNodes = Map_t<EdgesFrom, GetTo>;
+        using NextNodes = Map_t<EdgesFrom, ConnectionTrait<>::GetTo>;
 
     public:
         using type = typename PathFinder<NextNodes, TARGET,
@@ -101,26 +104,113 @@ public:
     };
 
 public:
+    // export compile-time interface
     template<typename F, typename TARGET>
     using PathFinder_t = typename PathFinder<F, TARGET>::type;
+
+private:
+    struct Path {
+        const size_t* path;
+        size_t sz;
+    };
+    template<typename... NODEs>
+    class PathStorage {
+        constexpr static size_t pathStorage[] { NODEs::id... };
+    public:
+        constexpr static Path path {
+            .path = pathStorage,
+            .sz   = sizeof...(NODEs)
+        };
+    };
+
+    template<typename T>
+    struct IsDifferPair {
+        constexpr static bool value = !std::is_same_v<
+            typename T::first_type, typename T::second_type>;
+    };
+    using AllPairs = Filter_t<CrossProduct_t<
+        Unique_t<Map_t<AllConnections, ConnectionTrait<>::GetFrom>>,
+        Unique_t<Map_t<AllConnections, ConnectionTrait<>::GetTo>>,
+        std::pair>, IsDifferPair>;
+    template<typename PAIR>
+    struct GetPath {
+        using type = std::pair<PAIR,
+            PathFinder_t<typename PAIR::first_type,
+                         typename PAIR::second_type>>;
+    };
+    template<typename PATH_PAIR>
+    struct IsNonEmptyPath {
+        constexpr static bool value = (PATH_PAIR::second_type::size > 0);
+    };
+    template<typename PATH_PAIR>
+    struct SavePath {
+        using type = std::pair<typename PATH_PAIR::first_type,
+              typename PATH_PAIR::second_type::template exportTo<PathStorage>>;
+    };
+    using AllPaths = Map_t<Filter_t<
+        Map_t<AllPairs, GetPath>,
+        IsNonEmptyPath>, SavePath>;
+
+private:
+    template<typename FROM, typename TO, typename PATH>
+    static bool matchPath(size_t from, size_t to,
+            Path& path, std::pair<std::pair<FROM, TO>, PATH>) {
+        if (FROM::id == from && TO::id == to) {
+            path = PATH::path;
+            return true;
+        }
+        return false;
+    }
+
+    template<typename ...PATH_PAIRs>
+    static void matchPath(size_t from, size_t to,
+            Path& path, TypeList<PATH_PAIRs...>) {
+        (matchPath(from, to, path, PATH_PAIRs{}) || ...);
+    }
+
+public:
+    // export run-time interface
+    static Path getPath(size_t from, size_t to) {
+        Path path{};
+        matchPath(from, to, path, AllPaths{});
+        return path;
+    }
 };
 
-struct A {};
-struct B {};
-struct C {};
-struct D {};
-struct E {};
+///////////////////////////////////////////////////////////////////////////////
+template<size_t ID>
+struct Node { constexpr static size_t id = ID; };
+
+struct A: Node<0> {};
+struct B: Node<1> {};
+struct C: Node<2> {};
+struct D: Node<3> {};
+struct E: Node<4> {};
 using g = Graph<
     __link(__node(A) -> __node(B) -> __node(C) -> __node(D)),
     __link(__node(A) -> __node(C)),
+    __link(__node(B) -> __node(A)),
     __link(__node(A) -> __node(E)) >;
 
 static_assert(g::PathFinder_t<A, D>::size == 3);
 static_assert(g::PathFinder_t<A, A>::size == 1);
 static_assert(g::PathFinder_t<B, D>::size == 3);
-static_assert(g::PathFinder_t<B, E>::size == 0);
+static_assert(g::PathFinder_t<B, E>::size == 3);
+static_assert(g::PathFinder_t<D, E>::size == 0);
 
 int main(int argc, char** argv) {
+    volatile size_t from = 0; // A
+    volatile size_t to = 3; // D
+    auto path = g::getPath(from, to);
+    assert(path.sz == 3);
+    // 0(A) -> 2(C) -> 3(D)
+    for (size_t i = 0; i < path.sz; ++i) {
+        std::cout << path.path[i];
+        if (i != path.sz - 1) {
+            std::cout << "->";
+        }
+    }
+    std::cout << std::endl;
 
     return 0;
 }
