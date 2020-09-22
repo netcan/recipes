@@ -109,17 +109,21 @@ public:
     using PathFinder_t = typename PathFinder<F, TARGET>::type;
 
 private:
+    template<typename NODE_TYPE>
     struct Path {
-        const size_t* path;
+        const NODE_TYPE* path;
         size_t sz;
     };
-    template<typename... NODEs>
+
+    template<typename NODE, typename... NODEs>
     class PathStorage {
-        constexpr static size_t pathStorage[] { NODEs::id... };
+        using NODE_TYPE = std::decay_t<decltype(NODE::id)>;
+        constexpr static NODE_TYPE
+            pathStorage[] { NODE::id, NODEs::id... };
     public:
-        constexpr static Path path {
+        constexpr static Path<NODE_TYPE> path {
             .path = pathStorage,
-            .sz   = sizeof...(NODEs)
+            .sz   = sizeof...(NODEs) + 1,
         };
     };
 
@@ -152,9 +156,9 @@ private:
         IsNonEmptyPath>, SavePath>;
 
 private:
-    template<typename FROM, typename TO, typename PATH>
-    static bool matchPath(size_t from, size_t to,
-            Path& path, std::pair<std::pair<FROM, TO>, PATH>) {
+    template<typename NODE_TYPE, typename FROM, typename TO, typename PATH>
+    static bool matchPath(NODE_TYPE from, NODE_TYPE to,
+            Path<NODE_TYPE>& path, std::pair<std::pair<FROM, TO>, PATH>) {
         if (FROM::id == from && TO::id == to) {
             path = PATH::path;
             return true;
@@ -162,16 +166,17 @@ private:
         return false;
     }
 
-    template<typename ...PATH_PAIRs>
-    static void matchPath(size_t from, size_t to,
-            Path& path, TypeList<PATH_PAIRs...>) {
+    template<typename NODE_TYPE, typename ...PATH_PAIRs>
+    static void matchPath(NODE_TYPE from, NODE_TYPE to,
+            Path<NODE_TYPE>& path, TypeList<PATH_PAIRs...>) {
         (matchPath(from, to, path, PATH_PAIRs{}) || ...);
     }
 
 public:
     // export run-time interface
-    static Path getPath(size_t from, size_t to) {
-        Path path{};
+    template<typename NODE_TYPE>
+    static Path<NODE_TYPE> getPath(NODE_TYPE from, NODE_TYPE to) {
+        Path<NODE_TYPE> path{};
         matchPath(from, to, path, AllPaths{});
         return path;
     }
@@ -179,13 +184,13 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 template<size_t ID>
-struct Node { constexpr static size_t id = ID; };
+struct Node { constexpr static char id = ID; };
 
-struct A: Node<0> {};
-struct B: Node<1> {};
-struct C: Node<2> {};
-struct D: Node<3> {};
-struct E: Node<4> {};
+struct A: Node<'A'> {};
+struct B: Node<'B'> {};
+struct C: Node<'C'> {};
+struct D: Node<'D'> {};
+struct E: Node<'E'> {};
 using g = Graph<
     __link(__node(A) -> __node(B) -> __node(C) -> __node(D)),
     __link(__node(A) -> __node(C)),
@@ -199,11 +204,14 @@ static_assert(g::PathFinder_t<B, E>::size == 3);
 static_assert(g::PathFinder_t<D, E>::size == 0);
 
 int main(int argc, char** argv) {
-    volatile size_t from = 0; // A
-    volatile size_t to = 3; // D
+    char from = 'A';
+    char to = 'D';
+    if (argc > 2) {
+        from = argv[1][0]; // A
+        to = argv[2][0]; // D
+    }
     auto path = g::getPath(from, to);
-    assert(path.sz == 3);
-    // 0(A) -> 2(C) -> 3(D)
+    std::cout << "from " << from << " to " << to << " path size: " << path.sz << std::endl;
     for (size_t i = 0; i < path.sz; ++i) {
         std::cout << path.path[i];
         if (i != path.sz - 1) {
