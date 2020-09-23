@@ -43,7 +43,7 @@ struct IsRefected<T,
     : std::true_type { };
 
 template<typename T>
-constexpr static bool IsRefected_v =
+constexpr static bool IsReflected_v =
     IsRefected<T>::value;
 
 template<typename T, typename F, size_t... Is>

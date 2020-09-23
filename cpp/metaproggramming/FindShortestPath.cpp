@@ -54,9 +54,9 @@ public:
 
 template<typename... Chains>
 class Graph {
-private:
     using AllConnections = Unique_t<Concat_t<typename Chain<Chains>::type...>>;
 
+///////////////////////////////////////////////////////////////////////////////
     template<typename F, typename TARGET,
         typename PATH = TypeList<>, typename = void>
     struct PathFinder;
@@ -78,9 +78,8 @@ private:
     // Skip cycle
     template<typename CURR_NODE, typename TARGET, typename PATH>
     struct PathFinder<CURR_NODE, TARGET, PATH,
-        std::enable_if_t<! std::is_same_v<CURR_NODE, TARGET> &&
-            !IsTypeList_v<CURR_NODE> &&
-            Elem_v<PATH, CURR_NODE>>>: TypeList<> {};
+        std::enable_if_t<!IsTypeList_v<CURR_NODE> &&
+            Elem_v<PATH, CURR_NODE>>>: TypeList<> {}; // return empty path
 
     // Expansion NextNodes
     template<typename TARGET, typename PATH, typename ...CURR_NODE>
@@ -103,12 +102,7 @@ private:
         using type = typename PATH::template appendTo<TARGET>;
     };
 
-public:
-    // export compile-time interface
-    template<typename F, typename TARGET>
-    using PathFinder_t = typename PathFinder<F, TARGET>::type;
-
-private:
+///////////////////////////////////////////////////////////////////////////////
     template<typename NODE_TYPE>
     struct Path {
         const NODE_TYPE* path;
@@ -127,20 +121,15 @@ private:
         };
     };
 
-    template<typename T>
-    struct IsDifferPair {
-        constexpr static bool value = !std::is_same_v<
-            typename T::first_type, typename T::second_type>;
-    };
-    using AllPairs = Filter_t<CrossProduct_t<
+    using AllPairs = CrossProduct_t<
         Unique_t<Map_t<AllConnections, ConnectionTrait<>::GetFrom>>,
         Unique_t<Map_t<AllConnections, ConnectionTrait<>::GetTo>>,
-        std::pair>, IsDifferPair>;
+        std::pair>;
     template<typename PAIR>
     struct GetPath {
         using type = std::pair<PAIR,
-            PathFinder_t<typename PAIR::first_type,
-                         typename PAIR::second_type>>;
+            typename PathFinder<typename PAIR::first_type,
+                         typename PAIR::second_type>::type>;
     };
     template<typename PATH_PAIR>
     struct IsNonEmptyPath {
@@ -155,9 +144,9 @@ private:
         Map_t<AllPairs, GetPath>,
         IsNonEmptyPath>, SavePath>;
 
-private:
+///////////////////////////////////////////////////////////////////////////////
     template<typename NODE_TYPE, typename FROM, typename TO, typename PATH>
-    static bool matchPath(NODE_TYPE from, NODE_TYPE to,
+    constexpr static bool matchPath(NODE_TYPE from, NODE_TYPE to,
             Path<NODE_TYPE>& path, std::pair<std::pair<FROM, TO>, PATH>) {
         if (FROM::id == from && TO::id == to) {
             path = PATH::path;
@@ -167,15 +156,15 @@ private:
     }
 
     template<typename NODE_TYPE, typename ...PATH_PAIRs>
-    static void matchPath(NODE_TYPE from, NODE_TYPE to,
+    constexpr static void matchPath(NODE_TYPE from, NODE_TYPE to,
             Path<NODE_TYPE>& path, TypeList<PATH_PAIRs...>) {
         (matchPath(from, to, path, PATH_PAIRs{}) || ...);
     }
 
 public:
-    // export run-time interface
+    // export compile/run-time interface
     template<typename NODE_TYPE>
-    static Path<NODE_TYPE> getPath(NODE_TYPE from, NODE_TYPE to) {
+    constexpr static Path<NODE_TYPE> getPath(NODE_TYPE from, NODE_TYPE to) {
         Path<NODE_TYPE> path{};
         matchPath(from, to, path, AllPaths{});
         return path;
@@ -193,15 +182,15 @@ struct D: Node<'D'> {};
 struct E: Node<'E'> {};
 using g = Graph<
     __link(__node(A) -> __node(B) -> __node(C) -> __node(D)),
-    __link(__node(A) -> __node(C)),
-    __link(__node(B) -> __node(A)),
-    __link(__node(A) -> __node(E)) >;
+    __link(__node(A) -> __node(C)),   // test shortest path: A -> C -> D
+    __link(__node(B) -> __node(A)),   // test cycle
+    __link(__node(A) -> __node(E)) >; // test D -> E unreachable
 
-static_assert(g::PathFinder_t<A, D>::size == 3);
-static_assert(g::PathFinder_t<A, A>::size == 1);
-static_assert(g::PathFinder_t<B, D>::size == 3);
-static_assert(g::PathFinder_t<B, E>::size == 3);
-static_assert(g::PathFinder_t<D, E>::size == 0);
+static_assert(g::getPath('A', 'D').sz == 3); // compile-time test
+static_assert(g::getPath('A', 'A').sz == 1);
+static_assert(g::getPath('B', 'D').sz == 3);
+static_assert(g::getPath('B', 'E').sz == 3);
+static_assert(g::getPath('D', 'E').sz == 0);
 
 int main(int argc, char** argv) {
     char from = 'A';
@@ -210,8 +199,9 @@ int main(int argc, char** argv) {
         from = argv[1][0]; // A
         to = argv[2][0]; // D
     }
-    auto path = g::getPath(from, to);
-    std::cout << "from " << from << " to " << to << " path size: " << path.sz << std::endl;
+    auto path = g::getPath(from, to); // runtime test
+    std::cout << "from " << from << " to " << to
+        << " path size: " << path.sz << std::endl;
     for (size_t i = 0; i < path.sz; ++i) {
         std::cout << path.path[i];
         if (i != path.sz - 1) {
