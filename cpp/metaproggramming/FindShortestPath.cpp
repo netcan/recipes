@@ -49,8 +49,8 @@ public:
           typename OUT::template appendTo<Connection<From, To>>>::type;
 };
 
-#define __node(node) auto(*) (node)
-#define __link(link) link -> void
+#define node(node) auto(*) (node)
+#define link(link) link -> void
 
 template<typename... Chains>
 class Graph {
@@ -181,10 +181,10 @@ struct C: Node<'C'> {};
 struct D: Node<'D'> {};
 struct E: Node<'E'> {};
 using g = Graph<
-    __link(__node(A) -> __node(B) -> __node(C) -> __node(D)),
-    __link(__node(A) -> __node(C)),   // test shortest path: A -> C -> D
-    __link(__node(B) -> __node(A)),   // test cycle
-    __link(__node(A) -> __node(E)) >; // test D -> E unreachable
+    link(node(A) -> node(B) -> node(C) -> node(D)),
+    link(node(A) -> node(C)),   // test shortest path: A -> C -> D
+    link(node(B) -> node(A)),   // test cycle
+    link(node(A) -> node(E)) >; // test D -> E unreachable
 
 static_assert(g::getPath('A', 'D').sz == 3); // compile-time test
 static_assert(g::getPath('A', 'A').sz == 1);
