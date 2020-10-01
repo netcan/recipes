@@ -14,6 +14,7 @@ add_executable(Datatable Datatable.cpp)
 add_executable(TypelistTest TypelistTest.cpp)
 add_executable(Relational Relational.cpp)
 add_executable(FindShortestPath FindShortestPath.cpp)
+add_executable(Maybe Maybe.cpp)
 
 include_directories(.)
 target_link_libraries(Relational ${GTEST_BOTH_LIBRARIES})
