@@ -7,7 +7,6 @@
     > Created Time: 2020-09-30 22:12
 ************************************************************************/
 #include <type_traits>
-#include <concepts>
 #include <variant>
 #include <functional>
 #include <iostream>
@@ -18,15 +17,13 @@ struct Just {
     operator const T&() const { return value; }
     Just(const T& value): value(value) {}
 };
-class Nothing {};
+struct Nothing {};
 
 template<typename T>
 struct Maybe {
     std::variant<Just<T>, Nothing> value;
     Maybe(const T& value): value(value) {}
-    Maybe(const Just<T>& value): value(value) {}
-    Maybe(Nothing): value(Nothing{}) {}
-
+    Maybe(const Nothing&): value(Nothing{}) {}
 };
 
 template<class... Ts>
@@ -35,14 +32,20 @@ template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 template<typename T>
-auto unit(T x) -> Maybe<T> { return x; }
+auto just(T x) -> Maybe<T> { return x; }
+
+struct AnyType {
+    template<typename T> operator T();
+    friend std::ostream& operator<<(std::ostream& os, const AnyType&) { return os; };
+};
+auto nothing() -> Maybe<AnyType> { return Nothing{}; }
 
 template<typename T, typename F>
 auto operator>>=(const Maybe<T>& ma, F&& f) {
     using R = std::invoke_result_t<F, T>;
     return std::visit(overloaded {
         [&](const Just<T>& v) -> R
-        { return f(v); },
+        { return f(static_cast<T>(v)); },
         [](Nothing) -> R
         { return Nothing{}; }
     }, ma.value);
@@ -59,16 +62,24 @@ auto show(const Maybe<T>& value) -> void {
 }
 
 int main(int argc, char** argv) {
-    auto value = unit(3);
+    auto value = just(3);
     show(value); // Just 3
 
-    show((value >>=
+    show((just(3) >>=
         [](int v) -> Maybe<double> {
             return {v * 1.5};
         }) >>= [](double v) -> Maybe<double> {
             return {v * 1.5};
         }
     ); // Just 6.75
+
+    show((nothing() >>=
+        [](int v) -> Maybe<double> {
+            return {v * 1.5};
+        }) >>= [](double v) -> Maybe<double> {
+            return {v * 1.5};
+        }
+    ); // Nothing
 
     return 0;
 }
