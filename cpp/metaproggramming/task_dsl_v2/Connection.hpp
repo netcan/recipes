@@ -8,7 +8,6 @@
 ************************************************************************/
 #pragma once
 #include "Typelist.hpp"
-#include "TupleUtils.hpp"
 #include "JobTrait.hpp"
 #include <tuple>
 
@@ -50,11 +49,7 @@ struct OneToOneLink {
         };
     public:
         constexpr void build(JobsCB& jobsCb) {
-            constexpr size_t JobsCBSize = std::tuple_size_v<JobsCB>;
-            constexpr size_t FromJobIndex = TupleElementByF_v<JobsCB, IsJob<FROM>::template apply>;
-            constexpr size_t ToJobIndex = TupleElementByF_v<JobsCB, IsJob<TO>::template apply>;
-            static_assert(FromJobIndex < JobsCBSize && ToJobIndex < JobsCBSize, "fatal: not find JobCb in JobsCB");
-            std::get<FromJobIndex>(jobsCb).job_.precede(std::get<ToJobIndex>(jobsCb).job_);
+            std::get<JobCb<FROM>>(jobsCb).job_.precede(std::get<JobCb<TO>>(jobsCb).job_);
         }
     };
 };

@@ -35,7 +35,7 @@ template<typename T>
 auto just(T x) -> Maybe<T> { return x; }
 
 struct AnyType {
-    template<typename T> operator T();
+    template<typename T> operator T() { return T{}; };
     friend std::ostream& operator<<(std::ostream& os, const AnyType&) { return os; };
 };
 auto nothing() -> Maybe<AnyType> { return Nothing{}; }
