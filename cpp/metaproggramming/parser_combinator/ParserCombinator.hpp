@@ -114,7 +114,7 @@ constexpr auto fmap(F&& f, P&& p) {
     };
 }
 
-// bind :: Parser a -> (a -> ParserInput -> ParserResult b) -> Parser b
+// bind :: Parser a -> (a -> Parser b) -> Parser b
 template<typename P, typename F>
 constexpr auto bind(P&& p, F&& f) {
     using R = std::invoke_result_t<F, Parser_t<P>, ParserInput>;
@@ -166,7 +166,7 @@ constexpr auto operator<(P1&& p1, P2&& p2) {
 };
 
 namespace detail {
-// foldL :: Parser a -> b -> (b -> a -> b) -> ParserInput -> ParserResult b
+// foldL :: Parser a -> b -> (b -> a -> b) -> Parser b
 template<typename P, typename R, typename F>
 constexpr auto foldL(P&& p, R acc, F&& f, ParserInput in) -> ParserResult<R> {
     while (true) {
