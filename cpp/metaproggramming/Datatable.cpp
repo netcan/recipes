@@ -30,7 +30,7 @@ class GroupEntriesTrait<ES, GS, std::void_t<typename ES::head>> {
     using satisfied = typename group::satisfied;
     using rest = typename group::rest;
 public:
-    using type = typename GroupEntriesTrait<rest, typename GS::template appendTo<satisfied>>::type;
+    using type = typename GroupEntriesTrait<rest, typename GS::template append<satisfied>>::type;
 };
 
 template<typename IN, auto GROUP_N = 0, typename INDEX = TypeList<>, auto N = 0, typename = void>
@@ -44,7 +44,7 @@ class RegionIndexTrait<IN, GROUP_N, INDEX, N, std::void_t<typename IN::head>> {
         static constexpr auto key = IN::head::key;
         static constexpr auto id = (GROUP_N << 16) | N;
     };
-    using entries = typename INDEX::template appendTo<entry>;
+    using entries = typename INDEX::template append<entry>;
 public:
     using type = typename RegionIndexTrait<typename IN::tails, GROUP_N, entries, N+1>::type;
 };
@@ -135,7 +135,7 @@ class Datatable {
     class GenericRegionTrait<GS, RS, std::void_t<typename GS::head>> {
         using region = typename GS::head::template exportTo<GenericRegion>;
     public:
-        using type = typename GenericRegionTrait<typename GS::tails, typename RS::template appendTo<region>>::type;
+        using type = typename GenericRegionTrait<typename GS::tails, typename RS::template append<region>>::type;
     };
 
     template<typename ...IS>

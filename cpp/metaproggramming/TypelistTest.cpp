@@ -9,7 +9,7 @@
 #include "Typelist.hpp"
 
 static_assert(std::is_same_v<TypeList<int, char>,
-        TypeList<int>::appendTo<char>>);
+        TypeList<int>::append<char>>);
 
 
 static_assert(std::is_same_v<Concat_t<TypeList<int, double>, TypeList<char, float>>,

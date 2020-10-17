@@ -75,7 +75,7 @@ class Task {
     public:
         using type = typename FindAllDependencies<
             typename JDeps::template exportTo<DEPS::tails::template append>::type,
-            typename OUT::template appendTo<J>>::type; // 将得到的后继列表合并，进一步递归展开，并输出当前Job到列表
+            typename OUT::template append<J>>::type; // 将得到的后继列表合并，进一步递归展开，并输出当前Job到列表
     };
 
     template<typename DEP>

@@ -35,7 +35,7 @@ private:
     using To = typename Chain<T, OUT>::From;
 public:
     using From = F;
-    using type = typename Chain<T, typename OUT::template appendTo<Connection<From, To>>>::type;
+    using type = typename Chain<T, typename OUT::template append<Connection<From, To>>>::type;
 };
 
 template<typename FROM, typename TO>

@@ -46,7 +46,7 @@ private:
 public:
     using From = F;
     using type = typename Chain<T,
-          typename OUT::template appendTo<Connection<From, To>>>::type;
+          typename OUT::template append<Connection<From, To>>>::type;
 };
 
 #define node(node) auto(*) (node)
@@ -72,7 +72,7 @@ class Graph {
 
     public:
         using type = typename PathFinder<NextNodes, TARGET,
-              typename PATH::template appendTo<CURR_NODE>>::type;
+              typename PATH::template append<CURR_NODE>>::type;
     };
 
     // Skip cycle
@@ -99,7 +99,7 @@ class Graph {
     // Reach TARGET!
     template<typename TARGET, typename PATH>
     struct PathFinder<TARGET, TARGET, PATH> {
-        using type = typename PATH::template appendTo<TARGET>;
+        using type = typename PATH::template append<TARGET>;
     };
 
 ///////////////////////////////////////////////////////////////////////////////
