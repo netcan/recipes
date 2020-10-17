@@ -21,7 +21,7 @@ struct TypeList {
     static constexpr size_t size = 0;
 
     template <typename ...T>
-    using append = typename TypeList<T...>::type;
+    using append = TypeList<T...>;
 
     template <typename T>
     using prepend = typename TypeList<T>::type;
@@ -123,16 +123,45 @@ struct Flatten {
 template<typename IN>
 using Flatten_t = typename Flatten<IN>::type;
 
-template<typename IN, typename OUT>
-struct Flatten<IN, OUT, std::enable_if_t<IsTypeList_v<typename IN::head>>> {
-    using type = typename Flatten<typename IN::tails, Concat_t<OUT, Flatten_t<typename IN::head>>>::type;
+template<typename OUT, typename H, typename ...Ts>
+struct Flatten<TypeList<H, Ts...>, OUT, std::enable_if_t<IsTypeList_v<H>>> {
+    using type = typename Flatten<TypeList<Ts...>, Concat_t<OUT, Flatten_t<H>>>::type;
 };
 
-template<typename IN, typename OUT>
-struct Flatten<IN, OUT, std::enable_if_t<! IsTypeList_v<typename IN::head>>> {
-    using type = typename Flatten<typename IN::tails, typename OUT::template append<typename IN::head>>::type;
+template<typename OUT, typename H, typename ...Ts>
+struct Flatten<TypeList<H, Ts...>, OUT, std::enable_if_t<!IsTypeList_v<H>>> {
+    using type = typename Flatten<TypeList<Ts...>, typename OUT::template append<H>>::type;
 };
 
+template<typename IN, template <typename> class F>
+struct Map {
+    using type = TypeList<>;
+};
+
+template<typename IN, template <typename> class F>
+using Map_t = typename Map<IN, F>::type;
+
+template<template <typename> class F, typename ...Ts>
+struct Map<TypeList<Ts...>, F> {
+    using type = TypeList<typename F<Ts>::type...>;
+};
+
+template<typename IN, template <typename> class F, typename OUT = TypeList<>>
+struct Filter {
+    using type = OUT;
+};
+
+template<typename IN, template <typename> class F>
+using Filter_t = typename Filter<IN, F>::type;
+
+template<template <typename> class F, typename OUT, typename H, typename ...Ts>
+class Filter<TypeList<H, Ts...>, F, OUT> {
+    using tails = TypeList<Ts...>;
+public:
+    using type = typename std::conditional_t<F<H>::value,
+          Filter<tails, F, typename OUT::template append<H>>,
+          Filter<tails, F, OUT>>::type;
+};
 
 template<typename IN, template<typename, typename> class CMP>
 struct Sort {
@@ -153,37 +182,6 @@ public:
     using type = Concat_t<typename SmallerSorted::template append<H>, BiggerSorted>;
 };
 
-template<typename IN, template <typename> class F>
-struct Map {
-    using type = TypeList<>;
-};
-
-template<typename IN, template <typename> class F>
-using Map_t = typename Map<IN, F>::type;
-
-template<template <typename> class F, typename ...Ts>
-struct Map<TypeList<Ts...>, F> {
-    using type = TypeList<typename F<Ts>::type...>;
-};
-
-template<typename IN, template <typename> class F, typename OUT = TypeList<>, typename = void>
-struct Filter {
-    using type = OUT;
-};
-
-template<typename IN, template <typename> class F>
-using Filter_t = typename Filter<IN, F>::type;
-
-template<typename IN, template <typename> class F, typename OUT>
-class Filter<IN, F, OUT, std::void_t<typename IN::head>> {
-    using H = typename IN::head;
-public:
-    using type = typename std::conditional_t<F<H>::value,
-          Filter<typename IN::tails, F, typename OUT::template append<H>>,
-          Filter<typename IN::tails, F, OUT>>::type;
-};
-
-
 template<typename IN, typename OUT=TypeList<>>
 struct Unique {
     using type = OUT;
@@ -201,7 +199,6 @@ template<typename E, typename ...Ts>
 struct Elem<TypeList<Ts...>, E> {
     static constexpr bool value = (std::is_same_v<E, Ts> || ...);
 };
-
 
 template<typename IN>
 using Unique_t = typename Unique<IN>::type;
@@ -251,7 +248,7 @@ struct CrossProduct<T, TypeList<Ts...>, PAIR,
     using type = TypeList<PAIR<T, Ts>...>;
 };
 
-template<typename IN, typename INIT, template<typename, typename> class F, typename = void>
+template<typename IN, typename INIT, template<typename, typename> class F>
 struct FoldL {
     using type = INIT;
 };
@@ -259,7 +256,8 @@ struct FoldL {
 template<typename IN, typename INIT, template<typename, typename> class F>
 using FoldL_t = typename FoldL<IN, INIT, F>::type;
 
-template<typename IN, typename ACC, template<typename, typename> class F>
-struct FoldL<IN, ACC, F, std::void_t<typename IN::head>> {
-    using type = FoldL_t<typename IN::tails, typename F<ACC, typename IN::head>::type, F>;
+template<typename ACC, template<typename, typename> class F,
+    typename H, typename ...Ts>
+struct FoldL<TypeList<H, Ts...>, ACC, F> {
+    using type = FoldL_t<TypeList<Ts...>, typename F<ACC, H>::type, F>;
 };

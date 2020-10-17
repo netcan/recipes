@@ -26,8 +26,14 @@ struct SizeCmp {
     constexpr static bool value = sizeof(L) < sizeof(R);
 };
 
+template<typename T>
+struct SizeLess4 {
+    constexpr static bool value = sizeof(T) < 4;
+};
+
 static_assert(std::is_same_v<Sort_t<SomeList, SizeCmp>, TypeList<char, char, float, int, double>>);
 static_assert(std::is_same_v<Unique_t<SomeList>, TypeList<char, float, double, int>>);
+static_assert(std::is_same_v<Filter_t<SomeList, SizeLess4>, TypeList<char, char>>);
 static_assert(Elem_v<SomeList, char>);
 static_assert(!Elem_v<SomeList, long long>);
 static_assert(!Elem_v<EmptyList, char>);
