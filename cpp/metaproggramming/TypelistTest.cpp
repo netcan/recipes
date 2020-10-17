@@ -44,6 +44,7 @@ static_assert(std::is_same_v<Map_t<EmptyList, std::add_pointer>,
         EmptyList>);
 
 static_assert(std::is_same_v<Flatten_t<SomeList>, SomeList>);
+
 static_assert(std::is_same_v<
         Flatten_t<TypeList<int, TypeList<char, TypeList<double>>>>
         , TypeList<int, char, double>>);
