@@ -47,6 +47,48 @@ struct TypeList<Head, Tails...> {
     using exportTo = T<Head, Tails...>;
 };
 
+template<typename IN, template <typename> class F>
+struct Map;
+
+template<typename IN, template <typename> class F>
+using Map_t = typename Map<IN, F>::type;
+
+template<template <typename> class F, typename ...Ts>
+struct Map<TypeList<Ts...>, F> {
+    using type = TypeList<typename F<Ts>::type...>;
+};
+
+template<typename IN, template <typename> class P, typename OUT = TypeList<>>
+struct Filter {
+    using type = OUT;
+};
+
+template<typename IN, template <typename> class P>
+using Filter_t = typename Filter<IN, P>::type;
+
+template<template <typename> class P, typename OUT, typename H, typename ...Ts>
+class Filter<TypeList<H, Ts...>, P, OUT> {
+    using tails = TypeList<Ts...>;
+public:
+    using type = typename std::conditional_t<P<H>::value,
+          Filter<tails, P, typename OUT::template append<H>>,
+          Filter<tails, P, OUT>>::type;
+};
+
+template<typename IN, typename INIT, template<typename, typename> class OP>
+struct FoldL {
+    using type = INIT;
+};
+
+template<typename IN, typename INIT, template<typename, typename> class OP>
+using FoldL_t = typename FoldL<IN, INIT, OP>::type;
+
+template<typename ACC, template<typename, typename> class OP,
+    typename H, typename ...Ts>
+struct FoldL<TypeList<H, Ts...>, ACC, OP> {
+    using type = FoldL_t<TypeList<Ts...>, typename OP<ACC, H>::type, OP>;
+};
+
 template<typename IN>
 struct IsTypeList {
     constexpr static bool value = false;
@@ -115,47 +157,6 @@ struct Concat<IN, IN2, Rest...> {
     using type = Concat_t<Concat_t<IN, IN2>, Rest...>;
 };
 
-template<typename IN, template <typename> class F>
-struct Map;
-
-template<typename IN, template <typename> class F>
-using Map_t = typename Map<IN, F>::type;
-
-template<template <typename> class F, typename ...Ts>
-struct Map<TypeList<Ts...>, F> {
-    using type = TypeList<typename F<Ts>::type...>;
-};
-
-template<typename IN, template <typename> class P, typename OUT = TypeList<>>
-struct Filter {
-    using type = OUT;
-};
-
-template<typename IN, template <typename> class P>
-using Filter_t = typename Filter<IN, P>::type;
-
-template<template <typename> class P, typename OUT, typename H, typename ...Ts>
-class Filter<TypeList<H, Ts...>, P, OUT> {
-    using tails = TypeList<Ts...>;
-public:
-    using type = typename std::conditional_t<P<H>::value,
-          Filter<tails, P, typename OUT::template append<H>>,
-          Filter<tails, P, OUT>>::type;
-};
-
-template<typename IN, typename INIT, template<typename, typename> class OP>
-struct FoldL {
-    using type = INIT;
-};
-
-template<typename IN, typename INIT, template<typename, typename> class OP>
-using FoldL_t = typename FoldL<IN, INIT, OP>::type;
-
-template<typename ACC, template<typename, typename> class OP,
-    typename H, typename ...Ts>
-struct FoldL<TypeList<H, Ts...>, ACC, OP> {
-    using type = FoldL_t<TypeList<Ts...>, typename OP<ACC, H>::type, OP>;
-};
 
 
 template<typename IN>

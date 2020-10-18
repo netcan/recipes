@@ -57,49 +57,45 @@ class Graph {
     using AllConnections = Unique_t<Concat_t<typename Chain<Chains>::type...>>;
 
 ///////////////////////////////////////////////////////////////////////////////
-    template<typename F, typename TARGET,
+    template<typename FROM, typename TARGET,
         typename PATH = TypeList<>, typename = void>
     struct PathFinder;
-
-    template<typename CURR_NODE, typename TARGET, typename PATH>
-    class PathFinder<CURR_NODE, TARGET, PATH,
-        std::enable_if_t<! std::is_same_v<CURR_NODE, TARGET> &&
-            !IsTypeList_v<CURR_NODE> &&
-            !Elem_v<PATH, CURR_NODE>>> {
-        using EdgesFrom = Filter_t<AllConnections,
-                        ConnectionTrait<CURR_NODE>::template IsFrom>;
-        using NextNodes = Map_t<EdgesFrom, ConnectionTrait<>::GetTo>;
-
-    public:
-        using type = typename PathFinder<NextNodes, TARGET,
-              typename PATH::template append<CURR_NODE>>::type;
-    };
-
-    // Skip cycle
-    template<typename CURR_NODE, typename TARGET, typename PATH>
-    struct PathFinder<CURR_NODE, TARGET, PATH,
-        std::enable_if_t<!IsTypeList_v<CURR_NODE> &&
-            Elem_v<PATH, CURR_NODE>>>: TypeList<> {}; // return empty path
-
-    // Expansion NextNodes
-    template<typename TARGET, typename PATH, typename ...CURR_NODE>
-    class PathFinder<TypeList<CURR_NODE...>, TARGET, PATH> {
-        using AllPaths = TypeList<
-            typename PathFinder<CURR_NODE, TARGET, PATH>::type...
-        >;
-        template<typename ACC, typename Path> struct PathCmp {
-            using type = std::conditional_t<(ACC::size == 0 ||
-                    ((ACC::size > Path::size) && Path::size > 0)),
-                  Path, ACC>;
-        };
-    public:
-        using type = FoldL_t<AllPaths, TypeList<>, PathCmp>;
-    };
 
     // Reach TARGET!
     template<typename TARGET, typename PATH>
     struct PathFinder<TARGET, TARGET, PATH> {
         using type = typename PATH::template append<TARGET>;
+    };
+
+    // Skip cycle
+    template<typename CURR_NODE, typename TARGET, typename PATH>
+    struct PathFinder<CURR_NODE, TARGET, PATH,
+        std::enable_if_t<Elem_v<PATH, CURR_NODE>>>: TypeList<> {}; // return empty path
+
+    template<typename CURR_NODE, typename TARGET, typename PATH>
+    class PathFinder<CURR_NODE, TARGET, PATH,
+        std::enable_if_t<! std::is_same_v<CURR_NODE, TARGET>
+            && !Elem_v<PATH, CURR_NODE>>> {
+        using EdgesFrom = Filter_t<AllConnections,
+                        ConnectionTrait<CURR_NODE>::template IsFrom>;
+        using NextNodes = Map_t<EdgesFrom, ConnectionTrait<>::GetTo>;
+
+        template<typename NEXT_NODE>
+        struct GetPath {
+            using type = typename PathFinder<NEXT_NODE, TARGET,
+                  typename PATH::template append<CURR_NODE>>::type;
+        };
+
+        using AllPaths = Map_t<NextNodes, GetPath>;
+
+        template<typename ACC, typename Path> struct PathCmp {
+            using type = std::conditional_t<(ACC::size == 0 ||
+                    ((ACC::size > Path::size) && Path::size > 0)),
+                  Path, ACC>;
+        };
+
+    public:
+        using type = FoldL_t<AllPaths, TypeList<>, PathCmp>;
     };
 
 ///////////////////////////////////////////////////////////////////////////////
