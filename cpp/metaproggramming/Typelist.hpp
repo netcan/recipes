@@ -67,13 +67,10 @@ template<typename IN, template <typename> class P>
 using Filter_t = typename Filter<IN, P>::type;
 
 template<template <typename> class P, typename OUT, typename H, typename ...Ts>
-class Filter<TypeList<H, Ts...>, P, OUT> {
-    using tails = TypeList<Ts...>;
-public:
-    using type = typename std::conditional_t<P<H>::value,
-          Filter<tails, P, typename OUT::template append<H>>,
-          Filter<tails, P, OUT>>::type;
-};
+struct Filter<TypeList<H, Ts...>, P, OUT>:
+    std::conditional_t<P<H>::value,
+        Filter<TypeList<Ts...>, P, typename OUT::template append<H>>,
+        Filter<TypeList<Ts...>, P, OUT>> { };
 
 template<typename IN, typename INIT, template<typename, typename> class OP>
 struct FoldL {
@@ -85,9 +82,8 @@ using FoldL_t = typename FoldL<IN, INIT, OP>::type;
 
 template<typename ACC, template<typename, typename> class OP,
     typename H, typename ...Ts>
-struct FoldL<TypeList<H, Ts...>, ACC, OP> {
-    using type = FoldL_t<TypeList<Ts...>, typename OP<ACC, H>::type, OP>;
-};
+struct FoldL<TypeList<H, Ts...>, ACC, OP>:
+    FoldL<TypeList<Ts...>, typename OP<ACC, H>::type, OP> {};
 
 template<typename IN>
 struct IsTypeList {
@@ -148,16 +144,12 @@ template<typename IN> struct Concat<IN> {
 };
 
 template<typename IN, typename IN2>
-struct Concat<IN, IN2> {
-    using type = typename IN2::template exportTo<IN::template append>::type;
-};
+struct Concat<IN, IN2>: IN2::template exportTo<IN::template append> { };
 
 template<typename IN, typename IN2, typename ...Rest>
 struct Concat<IN, IN2, Rest...> {
     using type = Concat_t<Concat_t<IN, IN2>, Rest...>;
 };
-
-
 
 template<typename IN>
 struct Flatten;
@@ -202,11 +194,6 @@ public:
     using type = Concat_t<typename SmallerSorted::template append<H>, BiggerSorted>;
 };
 
-template<typename IN, typename OUT=TypeList<>>
-struct Unique {
-    using type = OUT;
-};
-
 template<typename IN, typename E>
 struct Elem {
     static constexpr bool value = false;
@@ -221,16 +208,17 @@ struct Elem<TypeList<Ts...>, E> {
 };
 
 template<typename IN>
-using Unique_t = typename Unique<IN>::type;
+class Unique {
+    template<typename ACC, typename E>
+    struct Append: std::conditional_t<Elem_v<ACC, E>,
+        ACC, typename ACC::template append<E>> {};
 
-template<typename OUT, typename H, typename... Ts>
-class Unique<TypeList<H, Ts...>, OUT> {
-    using tails = TypeList<Ts...>;
 public:
-    using type = typename std::conditional_t<Elem_v<OUT, H>,
-          Unique<tails, OUT>,
-          Unique<tails, typename OUT::template append<H>>>::type;
+    using type = FoldL_t<IN, TypeList<>, Append>;
 };
+
+template<typename IN>
+using Unique_t = typename Unique<IN>::type;
 
 template<typename IN, template <typename> class F, typename = void>
 struct FindBy {
@@ -255,16 +243,13 @@ struct CrossProduct;
 template<typename A, typename B, template<typename, typename> class PAIR>
 using CrossProduct_t = typename CrossProduct<A, B, PAIR>::type;
 
-template<typename A, typename B,
-    template<typename, typename> class PAIR>
+template<typename A, typename B, template<typename, typename> class PAIR>
 class CrossProduct {
-    template<typename OUTER_LIST, typename TA>
+    template<typename RESULT_OUTTER, typename TA>
     struct OuterAppend {
-        template<typename INNER_LIST, typename TB>
-        struct InnerAppend {
-            using type = typename INNER_LIST::template append<PAIR<TA, TB>>;
-        };
-        using type = Concat_t<OUTER_LIST, FoldL_t<B, TypeList<>, InnerAppend>>;
+        template<typename RESULT_INNER, typename TB>
+        struct InnerAppend: RESULT_INNER::template append<PAIR<TA, TB>> { };
+        using type = FoldL_t<B, RESULT_OUTTER, InnerAppend>;
     };
 
 public:

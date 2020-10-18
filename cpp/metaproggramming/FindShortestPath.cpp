@@ -12,21 +12,21 @@
 #include <iostream>
 
 template<typename F, typename T>
-struct Connection {
+struct Edge {
     using From = F;
     using To = T;
 };
 
-template<typename C = void>
-struct ConnectionTrait {
-    template<typename T> struct IsFrom
-    { constexpr static bool value = std::is_same_v<typename T::From, C>; };
-    template<typename T> struct IsTo
-    { constexpr static bool value = std::is_same_v<typename T::To, C>; };
-    template<typename T>
-    struct GetFrom { using type = typename T::From; };
-    template<typename T>
-    struct GetTo { using type = typename T::To; };
+template<typename Node = void>
+struct EdgeTrait {
+    template<typename Edge> struct IsFrom
+    { constexpr static bool value = std::is_same_v<typename Edge::From, Node>; };
+    template<typename Edge> struct IsTo
+    { constexpr static bool value = std::is_same_v<typename Edge::To, Node>; };
+    template<typename Edge>
+    struct GetFrom { using type = typename Edge::From; };
+    template<typename Edge>
+    struct GetTo { using type = typename Edge::To; };
 };
 
 
@@ -46,7 +46,7 @@ private:
 public:
     using From = F;
     using type = typename Chain<T,
-          typename OUT::template append<Connection<From, To>>>::type;
+          typename OUT::template append<Edge<From, To>>>::type;
 };
 
 #define node(node) auto(*) (node)
@@ -54,7 +54,7 @@ public:
 
 template<typename... Chains>
 class Graph {
-    using AllConnections = Unique_t<Concat_t<typename Chain<Chains>::type...>>;
+    using Edges = Unique_t<Concat_t<typename Chain<Chains>::type...>>;
 
 ///////////////////////////////////////////////////////////////////////////////
     template<typename FROM, typename TARGET,
@@ -63,9 +63,8 @@ class Graph {
 
     // Reach TARGET!
     template<typename TARGET, typename PATH>
-    struct PathFinder<TARGET, TARGET, PATH> {
-        using type = typename PATH::template append<TARGET>;
-    };
+    struct PathFinder<TARGET, TARGET, PATH>:
+        PATH::template append<TARGET> { };
 
     // Skip cycle
     template<typename CURR_NODE, typename TARGET, typename PATH>
@@ -76,26 +75,21 @@ class Graph {
     class PathFinder<CURR_NODE, TARGET, PATH,
         std::enable_if_t<! std::is_same_v<CURR_NODE, TARGET>
             && !Elem_v<PATH, CURR_NODE>>> {
-        using EdgesFrom = Filter_t<AllConnections,
-                        ConnectionTrait<CURR_NODE>::template IsFrom>;
-        using NextNodes = Map_t<EdgesFrom, ConnectionTrait<>::GetTo>;
+        using EdgesFrom = Filter_t<Edges,
+                        EdgeTrait<CURR_NODE>::template IsFrom>;
+        using NextNodes = Map_t<EdgesFrom, EdgeTrait<>::GetTo>;
 
         template<typename NEXT_NODE>
-        struct GetPath {
-            using type = typename PathFinder<NEXT_NODE, TARGET,
-                  typename PATH::template append<CURR_NODE>>::type;
-        };
+        struct GetPath: PathFinder<NEXT_NODE, TARGET,
+            typename PATH::template append<CURR_NODE>> {};
 
         using AllPaths = Map_t<NextNodes, GetPath>;
 
-        template<typename ACC, typename Path> struct PathCmp {
-            using type = std::conditional_t<(ACC::size == 0 ||
-                    ((ACC::size > Path::size) && Path::size > 0)),
-                  Path, ACC>;
-        };
-
+        template<typename ACC, typename Path> struct MinPath:
+            std::conditional_t<(ACC::size == 0 ||
+                ((ACC::size > Path::size) && Path::size > 0)), Path, ACC> {};
     public:
-        using type = FoldL_t<AllPaths, TypeList<>, PathCmp>;
+        using type = FoldL_t<AllPaths, TypeList<>, MinPath>;
     };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -118,8 +112,8 @@ class Graph {
     };
 
     using AllPairs = CrossProduct_t<
-        Unique_t<Map_t<AllConnections, ConnectionTrait<>::GetFrom>>,
-        Unique_t<Map_t<AllConnections, ConnectionTrait<>::GetTo>>,
+        Unique_t<Map_t<Edges, EdgeTrait<>::GetFrom>>,
+        Unique_t<Map_t<Edges, EdgeTrait<>::GetTo>>,
         std::pair>;
     template<typename PAIR>
     struct GetPath {
@@ -136,16 +130,16 @@ class Graph {
         using type = std::pair<typename PATH_PAIR::first_type,
               typename PATH_PAIR::second_type::template exportTo<PathStorage>>;
     };
-    using AllPaths = Map_t<Filter_t<
+    using SavedPaths = Map_t<Filter_t<
         Map_t<AllPairs, GetPath>,
         IsNonEmptyPath>, SavePath>;
 
 ///////////////////////////////////////////////////////////////////////////////
-    template<typename NODE_TYPE, typename FROM, typename TO, typename PATH>
+    template<typename NODE_TYPE, typename FROM, typename TARGET, typename PATH>
     constexpr static bool matchPath(NODE_TYPE from, NODE_TYPE to,
-            Path<NODE_TYPE>& path, std::pair<std::pair<FROM, TO>, PATH>) {
-        if (FROM::id == from && TO::id == to) {
-            path = PATH::path;
+            Path<NODE_TYPE>& result, std::pair<std::pair<FROM, TARGET>, PATH>) {
+        if (FROM::id == from && TARGET::id == to) {
+            result = PATH::path;
             return true;
         }
         return false;
@@ -153,29 +147,30 @@ class Graph {
 
     template<typename NODE_TYPE, typename ...PATH_PAIRs>
     constexpr static void matchPath(NODE_TYPE from, NODE_TYPE to,
-            Path<NODE_TYPE>& path, TypeList<PATH_PAIRs...>) {
-        (matchPath(from, to, path, PATH_PAIRs{}) || ...);
+            Path<NODE_TYPE>& result, TypeList<PATH_PAIRs...>) {
+        (matchPath(from, to, result, PATH_PAIRs{}) || ...);
     }
 
 public:
     // export compile/run-time interface
     template<typename NODE_TYPE>
     constexpr static Path<NODE_TYPE> getPath(NODE_TYPE from, NODE_TYPE to) {
-        Path<NODE_TYPE> path{};
-        matchPath(from, to, path, AllPaths{});
-        return path;
+        Path<NODE_TYPE> result{};
+        matchPath(from, to, result, SavedPaths{});
+        return result;
     }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-template<size_t ID>
+template<char ID>
 struct Node { constexpr static char id = ID; };
 
-struct A: Node<'A'> {};
-struct B: Node<'B'> {};
-struct C: Node<'C'> {};
-struct D: Node<'D'> {};
-struct E: Node<'E'> {};
+using A = Node<'A'>;
+using B = Node<'B'>;
+using C = Node<'C'>;
+using D = Node<'D'>;
+using E = Node<'E'>;
+
 using g = Graph<
     link(node(A) -> node(B) -> node(C) -> node(D)),
     link(node(A) -> node(C)),   // test shortest path: A -> C -> D
