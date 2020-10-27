@@ -13,6 +13,9 @@
 template<typename...>
 struct dump;
 
+template<typename T>
+struct Return { using type = T; };
+
 struct Nil;
 
 template <typename ...Ts>
@@ -54,14 +57,10 @@ template<typename IN, template <typename> class F>
 using Map_t = typename Map<IN, F>::type;
 
 template<template <typename> class F, typename ...Ts>
-struct Map<TypeList<Ts...>, F> {
-    using type = TypeList<typename F<Ts>::type...>;
-};
+struct Map<TypeList<Ts...>, F>: TypeList<typename F<Ts>::type...> {};
 
 template<typename IN, template <typename> class P, typename OUT = TypeList<>>
-struct Filter {
-    using type = OUT;
-};
+struct Filter: OUT {};
 
 template<typename IN, template <typename> class P>
 using Filter_t = typename Filter<IN, P>::type;
@@ -73,9 +72,7 @@ struct Filter<TypeList<H, Ts...>, P, OUT>:
         Filter<TypeList<Ts...>, P, OUT>> { };
 
 template<typename IN, typename INIT, template<typename, typename> class OP>
-struct FoldL {
-    using type = INIT;
-};
+struct FoldL: Return<INIT> {};
 
 template<typename IN, typename INIT, template<typename, typename> class OP>
 using FoldL_t = typename FoldL<IN, INIT, OP>::type;
@@ -86,23 +83,18 @@ struct FoldL<TypeList<H, Ts...>, ACC, OP>:
     FoldL<TypeList<Ts...>, typename OP<ACC, H>::type, OP> {};
 
 template<typename IN>
-struct IsTypeList {
-    constexpr static bool value = false;
-};
+struct IsTypeList: std::false_type {};
 
 template<typename IN>
 constexpr bool IsTypeList_v = IsTypeList<IN>::value;
 
 template<typename ...Ts>
-struct IsTypeList<TypeList<Ts...>> {
-    constexpr static bool value = true;
-};
+struct IsTypeList<TypeList<Ts...>>: std::true_type {};
 
 template<typename IN,
     template<typename> typename P,
     typename S = TypeList<>,
-    typename R = TypeList<>,
-    typename = void>
+    typename R = TypeList<>>
 struct Partition {
     struct type {
         using satisfied = S;
@@ -113,22 +105,10 @@ struct Partition {
 template<typename IN, template<typename> class P>
 using Partition_t = typename Partition<IN, P>::type;
 
-template<typename IN, template<typename> typename P, typename S, typename R>
-class Partition<IN, P, S, R, std::enable_if_t<P<typename IN::head>::value>> {
-    using satisfied = typename S::template append<typename IN::head>::type;
-public:
-    using type = typename Partition<typename IN::tails, P, satisfied, R>::type;
-};
-
-template<typename IN,
-    template<typename> typename P,
-    typename S,
-    typename R>
-class Partition<IN, P, S, R, std::enable_if_t<!P<typename IN::head>::value> >  {
-    using rest = typename R::template append<typename IN::head>::type;
-public:
-    using type = typename Partition<typename IN::tails, P, S, rest>::type;
-};
+template<typename H, typename ...Ts, template<typename> typename P, typename S, typename R>
+struct Partition<TypeList<H, Ts...>, P, S, R>: std::conditional_t<P<H>::value,
+      Partition<TypeList<Ts...>, P, typename S::template append<H>, R>,
+      Partition<TypeList<Ts...>, P, S, typename R::template append<H>>> {};
 
 template<typename... IN>
 struct Concat;
@@ -136,57 +116,46 @@ struct Concat;
 template<typename... IN>
 using Concat_t = typename Concat<IN...>::type;
 
-template<> struct Concat<> {
-    using type = TypeList<>;
-};
-template<typename IN> struct Concat<IN> {
-    using type = IN;
-};
+template<> struct Concat<>: TypeList<> { };
+
+template<typename IN> struct Concat<IN>: IN { };
 
 template<typename IN, typename IN2>
 struct Concat<IN, IN2>: IN2::template exportTo<IN::template append> { };
 
 template<typename IN, typename IN2, typename ...Rest>
-struct Concat<IN, IN2, Rest...> {
-    using type = Concat_t<Concat_t<IN, IN2>, Rest...>;
-};
+struct Concat<IN, IN2, Rest...>: Concat_t<Concat_t<IN, IN2>, Rest...> { };
 
 template<typename IN>
-struct Flatten;
+class Flatten {
+    struct impl {
+        template<typename ACC, typename E>
+        struct Append: ACC::template append<E> {};
+
+        template<typename ACC, typename ...Ts>
+        struct Append<ACC, TypeList<Ts...>>:
+            Concat_t<ACC, typename Flatten<TypeList<Ts...>>::type> {};
+    };
+
+    template<typename ACC, typename E>
+    using Append = typename impl::template Append<ACC, E>;
+
+public:
+    using type = FoldL_t<IN, TypeList<>, Append>;
+};
 
 template<typename IN>
 using Flatten_t = typename Flatten<IN>::type;
 
-template<typename... Ts>
-class Flatten<TypeList<Ts...>> {
-    struct impl {
-        template<typename ACC, typename E, typename = void>
-        struct Append { using type = typename ACC::template append<E>; };
-        template<typename ACC, typename E>
-        struct Append<ACC, E, std::enable_if_t<IsTypeList_v<E>>> {
-            using type = Concat_t<ACC, Flatten_t<E>>;
-        };
-    };
-
-    template<typename IN, typename E>
-    using Append = typename impl::template Append<IN, E>;
-
-public:
-    using type = FoldL_t<TypeList<Ts...>, TypeList<>, Append>;
-};
-
 template<typename IN, template<typename, typename> class CMP>
-struct Sort {
-    using type = TypeList<>;
-};
+struct Sort: TypeList<> {};
 
 template<typename IN, template<typename, typename> class CMP>
 using Sort_t = typename Sort<IN, CMP>::type;
 
 template<template<typename, typename> class CMP, typename H, typename ...Ts>
 class Sort<TypeList<H, Ts...>, CMP> {
-    template<typename E>
-    struct LT { static constexpr bool value = CMP<E, H>::value; };
+    template<typename E> struct LT: CMP<E, H> { };
     using P = Partition_t<TypeList<Ts...>, LT>;
     using SmallerSorted = Sort_t<typename P::satisfied, CMP>;
     using BiggerSorted = Sort_t<typename P::rest, CMP>;
@@ -195,17 +164,14 @@ public:
 };
 
 template<typename IN, typename E>
-struct Elem {
-    static constexpr bool value = false;
-};
+class Elem: std::false_type { };
 
 template<typename IN, typename E>
 constexpr bool Elem_v = Elem<IN, E>::value;
 
 template<typename E, typename ...Ts>
-struct Elem<TypeList<Ts...>, E> {
-    static constexpr bool value = (std::is_same_v<E, Ts> || ...);
-};
+struct Elem<TypeList<Ts...>, E>:
+    std::bool_constant<(std::is_same_v<E, Ts> || ...)> { };
 
 template<typename IN>
 class Unique {
@@ -220,21 +186,15 @@ public:
 template<typename IN>
 using Unique_t = typename Unique<IN>::type;
 
-template<typename IN, template <typename> class F, typename = void>
-struct FindBy {
-    using type = Nil;
-};
+template<typename IN, template <typename> class F>
+struct FindBy: Return<Nil> {};
 
 template<typename IN, template <typename> class F>
 using FindBy_t = typename FindBy<IN, F>::type;
 
-template<typename IN, template <typename> class F>
-struct FindBy<IN, F, std::void_t<typename IN::head>> {
-    using type = std::conditional_t<
-        F<typename IN::head>::value,
-        typename IN::head,
-        typename FindBy<typename IN::tails, F>::type>;
-};
+template<typename H, typename ...Ts, template <typename> class F>
+struct FindBy<TypeList<H, Ts...>, F>: std::conditional_t<F<H>::value,
+    H, FindBy<TypeList<Ts...>, F>> {};
 
 template<typename A, typename B,
     template<typename, typename> class PAIR>
