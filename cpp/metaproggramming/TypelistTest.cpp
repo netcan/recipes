@@ -23,15 +23,13 @@ using SomeList = TypeList<char, float, double, int, char>;
 using EmptyList = TypeList<>;
 
 template<typename L, typename R>
-struct SizeCmp {
-    constexpr static bool value = sizeof(L) < sizeof(R);
-};
+struct SizeCmp: std::bool_constant<(sizeof(L) < sizeof(R))> { };
 
 template<typename T>
-struct SizeLess4 {
-    constexpr static bool value = sizeof(T) < 4;
-};
+struct SizeLess4: std::bool_constant<(sizeof(T) < 4)> { };
 
+static_assert(std::is_same_v<FindBy_t<TypeList<long, double, char>, SizeLess4>, char>);
+static_assert(std::is_same_v<FindBy_t<TypeList<long, double>, SizeLess4>, Nil>);
 static_assert(std::is_same_v<Sort_t<SomeList, SizeCmp>, TypeList<char, char, float, int, double>>);
 static_assert(std::is_same_v<Unique_t<SomeList>, TypeList<char, float, double, int>>);
 static_assert(std::is_same_v<Filter_t<SomeList, SizeLess4>, TypeList<char, char>>);

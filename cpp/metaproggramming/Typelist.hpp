@@ -50,6 +50,12 @@ struct TypeList<Head, Tails...> {
     using exportTo = T<Head, Tails...>;
 };
 
+template<typename G>
+struct Not;
+
+template<template<typename...> class G, typename... Args>
+struct Not<G<Args...>>: std::bool_constant<!G<Args...>::value> { };
+
 template<typename IN, template <typename> class F>
 struct Map;
 
@@ -81,15 +87,6 @@ template<typename ACC, template<typename, typename> class OP,
     typename H, typename ...Ts>
 struct FoldL<TypeList<H, Ts...>, ACC, OP>:
     FoldL<TypeList<Ts...>, typename OP<ACC, H>::type, OP> {};
-
-template<typename IN>
-struct IsTypeList: std::false_type {};
-
-template<typename IN>
-constexpr bool IsTypeList_v = IsTypeList<IN>::value;
-
-template<typename ...Ts>
-struct IsTypeList<TypeList<Ts...>>: std::true_type {};
 
 template<typename IN,
     template<typename> typename P,
@@ -194,7 +191,7 @@ using FindBy_t = typename FindBy<IN, F>::type;
 
 template<typename H, typename ...Ts, template <typename> class F>
 struct FindBy<TypeList<H, Ts...>, F>: std::conditional_t<F<H>::value,
-    H, FindBy<TypeList<Ts...>, F>> {};
+    Return<H>, FindBy<TypeList<Ts...>, F>> {};
 
 template<typename A, typename B,
     template<typename, typename> class PAIR>
