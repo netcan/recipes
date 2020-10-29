@@ -21,33 +21,13 @@ struct Nil;
 template <typename ...Ts>
 struct TypeList {
     using type = TypeList<Ts...>;
-    static constexpr size_t size = 0;
+    static constexpr size_t size = sizeof...(Ts);
 
     template <typename ...T>
-    using append = TypeList<T...>;
-
-    template <typename T>
-    using prepend = typename TypeList<T>::type;
+    using append = TypeList<Ts..., T...>;
 
     template <template<typename...> typename T>
     using exportTo = T<Ts...>;
-};
-
-template <typename Head, typename ...Tails>
-struct TypeList<Head, Tails...> {
-    using type = TypeList<Head, Tails...>;
-    using head = Head;
-    using tails = TypeList<Tails...>;
-    static constexpr size_t size = sizeof...(Tails) + 1;
-
-    template <typename ...Ts>
-    using append = TypeList<Head, Tails..., Ts...>;
-
-    template <typename T>
-    using prepend = typename TypeList<T, Head, Tails...>::type;
-
-    template <template<typename...> typename T>
-    using exportTo = T<Head, Tails...>;
 };
 
 template<typename G>

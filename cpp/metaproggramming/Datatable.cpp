@@ -12,53 +12,45 @@
 #include <gtest/gtest.h>
 #include "Typelist.hpp"
 
-template<typename ES = TypeList<>, typename GS = TypeList<>, typename = void>
-struct GroupEntriesTrait {
-    using type = GS;
-};
+template<typename ES = TypeList<>, typename GS = TypeList<>>
+struct GroupEntriesTrait: Return<GS> { };
 
-template<typename ES, typename GS>
-class GroupEntriesTrait<ES, GS, std::void_t<typename ES::head>> {
+template<typename H, typename ...Ts, typename GS>
+class GroupEntriesTrait<TypeList<H, Ts...>, GS> {
     template<typename E>
-    struct GroupPrediction {
-        static constexpr bool value =
-            ES::head::dim == E::dim &&
-            sizeof(typename ES::head::type) == sizeof(typename E::type) &&
-            alignof(typename ES::head::type) == alignof(typename E::type);
-    };
-    using group = Partition_t<ES, GroupPrediction>;
+    struct GroupPrediction: std::bool_constant<(H::dim == E::dim &&
+            sizeof(typename H::type) == sizeof(typename E::type) &&
+            alignof(typename H::type) == alignof(typename E::type))> { };
+
+    using group = Partition_t<TypeList<H, Ts...>, GroupPrediction>;
     using satisfied = typename group::satisfied;
     using rest = typename group::rest;
 public:
     using type = typename GroupEntriesTrait<rest, typename GS::template append<satisfied>>::type;
 };
 
-template<typename IN, auto GROUP_N = 0, typename INDEX = TypeList<>, auto N = 0, typename = void>
-struct RegionIndexTrait {
-    using type = INDEX;
-};
+template<typename IN, auto GROUP_N = 0, typename INDEX = TypeList<>, auto N = 0>
+struct RegionIndexTrait: Return<INDEX> { };
 
-template<typename IN, typename INDEX, auto GROUP_N, auto N>
-class RegionIndexTrait<IN, GROUP_N, INDEX, N, std::void_t<typename IN::head>> {
+template<typename H, typename ...Ts, typename INDEX, auto GROUP_N, auto N>
+class RegionIndexTrait<TypeList<H, Ts...>, GROUP_N, INDEX, N> {
     struct entry {
-        static constexpr auto key = IN::head::key;
+        static constexpr auto key = H::key;
         static constexpr auto id = (GROUP_N << 16) | N;
     };
     using entries = typename INDEX::template append<entry>;
 public:
-    using type = typename RegionIndexTrait<typename IN::tails, GROUP_N, entries, N+1>::type;
+    using type = typename RegionIndexTrait<TypeList<Ts...>, GROUP_N, entries, N+1>::type;
 };
 
-template<typename IN, typename INDEX = TypeList<>, auto GROUP_N = 0, typename = void>
-struct GroupIndexTrait {
-    using type = INDEX;
-};
+template<typename IN, typename INDEX = TypeList<>, auto GROUP_N = 0>
+struct GroupIndexTrait: Return<INDEX> { };
 
-template<typename IN, typename INDEX, auto GROUP_N>
-class GroupIndexTrait<IN, INDEX, GROUP_N, std::void_t<typename IN::head>> {
-    using index = typename RegionIndexTrait<typename IN::head, GROUP_N, INDEX>::type;
+template<typename H, typename ...Ts, typename INDEX, auto GROUP_N>
+class GroupIndexTrait<TypeList<H, Ts...>, INDEX, GROUP_N> {
+    using index = typename RegionIndexTrait<H, GROUP_N, INDEX>::type;
 public:
-    using type = typename GroupIndexTrait<typename IN::tails, index, GROUP_N + 1>::type;
+    using type = typename GroupIndexTrait<TypeList<Ts...>, index, GROUP_N + 1>::type;
 };
 
 // <key, valuetype>
@@ -126,16 +118,14 @@ class Datatable {
         }
     };
 
-    template<typename GS, typename RS = TypeList<>, typename = void>
-    struct GenericRegionTrait {
-        using type = RS;
-    };
+    template<typename GS, typename RS = TypeList<>>
+    struct GenericRegionTrait: Return<RS> { };
 
-    template<typename GS, typename RS>
-    class GenericRegionTrait<GS, RS, std::void_t<typename GS::head>> {
-        using region = typename GS::head::template exportTo<GenericRegion>;
+    template<typename H, typename ...Ts, typename RS>
+    class GenericRegionTrait<TypeList<H, Ts...>, RS> {
+        using region = typename H::template exportTo<GenericRegion>;
     public:
-        using type = typename GenericRegionTrait<typename GS::tails, typename RS::template append<region>>::type;
+        using type = typename GenericRegionTrait<TypeList<Ts...>, typename RS::template append<region>>::type;
     };
 
     template<typename ...IS>
@@ -175,6 +165,7 @@ TEST(TestDataTbl, get_and_set) {
         Entry<6, int> >;
 
     Datatable<AllEntries> datatbl;
+    printf("sizeof AllEntries = %zu\n", sizeof(datatbl));
     {
         int expectedValue = 23;
         EXPECT_FALSE(datatbl.getData(0, &expectedValue));

@@ -19,16 +19,14 @@ struct Edge {
 
 template<typename Node = void>
 struct EdgeTrait {
-    template<typename Edge> struct IsFrom
-    { constexpr static bool value = std::is_same_v<typename Edge::From, Node>; };
-    template<typename Edge> struct IsTo
-    { constexpr static bool value = std::is_same_v<typename Edge::To, Node>; };
-    template<typename Edge>
-    struct GetFrom { using type = typename Edge::From; };
-    template<typename Edge>
-    struct GetTo { using type = typename Edge::To; };
-};
+    template<typename Edge> struct IsFrom: std::is_same<typename Edge::From, Node> {};
+    template<typename Edge> struct IsTo: std::is_same<typename Edge::To, Node> {};
 
+    template<typename Edge>
+    struct GetFrom: Return<typename Edge::From> { };
+    template<typename Edge>
+    struct GetTo: Return<typename Edge::To> { };
+};
 
 template<typename T, typename OUT = TypeList<>>
 struct Chain;
@@ -91,8 +89,8 @@ class Graph {
     public:
         using type = FoldL_t<AllPaths, TypeList<>, MinPath>;
     };
-
 ///////////////////////////////////////////////////////////////////////////////
+
     template<typename NODE_TYPE>
     struct Path {
         const NODE_TYPE* path;
@@ -115,26 +113,25 @@ class Graph {
         Unique_t<Map_t<Edges, EdgeTrait<>::GetFrom>>,
         Unique_t<Map_t<Edges, EdgeTrait<>::GetTo>>,
         std::pair>;
+
     template<typename PAIR>
-    struct GetPath {
-        using type = std::pair<PAIR,
+    struct GetPath: Return<std::pair<PAIR,
             typename PathFinder<typename PAIR::first_type,
-                         typename PAIR::second_type>::type>;
-    };
+                                typename PAIR::second_type>::type>> {};
+
     template<typename PATH_PAIR>
-    struct IsNonEmptyPath {
-        constexpr static bool value = (PATH_PAIR::second_type::size > 0);
-    };
+    struct IsNonEmptyPath:
+        std::bool_constant<(PATH_PAIR::second_type::size > 0)> { };
+
     template<typename PATH_PAIR>
-    struct SavePath {
-        using type = std::pair<typename PATH_PAIR::first_type,
-              typename PATH_PAIR::second_type::template exportTo<PathStorage>>;
-    };
+    struct SavePath: Return<std::pair<typename PATH_PAIR::first_type,
+        typename PATH_PAIR::second_type::template exportTo<PathStorage>>> {};
+
     using SavedPaths = Map_t<Filter_t<
         Map_t<AllPairs, GetPath>,
         IsNonEmptyPath>, SavePath>;
-
 ///////////////////////////////////////////////////////////////////////////////
+
     template<typename NODE_TYPE, typename FROM, typename TARGET, typename PATH>
     constexpr static bool matchPath(NODE_TYPE from, NODE_TYPE to,
             Path<NODE_TYPE>& result, std::pair<std::pair<FROM, TARGET>, PATH>) {
