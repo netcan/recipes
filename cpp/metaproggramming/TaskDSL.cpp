@@ -30,85 +30,84 @@ struct Connection<auto(*)(Job1) -> auto(*)(Job2) -> void> {
 
 template <typename... LINKS>
 class Task {
-    template<typename Con>
-    struct GetFrom { using type = typename Con::FROM; };
-    template<typename Con>
-    struct GetDst { using type = typename Con::DST; };
+    class JobDescendantsMap {
+        template<typename Con>
+        struct GetFrom: Return<typename Con::FROM> { };
+        template<typename Con>
+        struct GetDst: Return<typename Con::DST> { };
 
-    using Connections = TypeList<Connection<LINKS>...>;
-    using FromJobs = Map_t<Connections, GetFrom>;
-    using DstJobs = Map_t<Connections, GetDst>;
-    using AllJobs = Unique_t<Concat_t<FromJobs, DstJobs>>;
-    static constexpr size_t JobNums = AllJobs::size;
+        using Connections = Unique_t<TypeList<Connection<LINKS>...>>; // remove same edge
+        using FromJobs = Map_t<Connections, GetFrom>;
+        using DstJobs = Map_t<Connections, GetDst>;
+        using AllJobs = Unique_t<Concat_t<FromJobs, DstJobs>>;
 
-    template<typename Job>
-    class FindJobDependencies {
-        template<typename C> struct Dependency
-        { static constexpr bool value = std::is_same_v<typename GetFrom<C>::type, Job>; };
-        using JobDependencies = Filter_t<Connections, Dependency>;
-    public:
-        using type = typename Map_t<JobDependencies, GetDst>::template prepend<Job>; // prepend FROM node to result front
-    };
-
-    template <typename DEP>
-    struct Dependency {
-        struct type {
-            using Job = typename DEP::head;
-            using Dependencies = typename DEP::tails;
+        template<typename J>
+        class FindJobDescendants {
+            template<typename C> struct Dependency:
+                std::is_same<typename GetFrom<C>::type, J> { };
+            using JobDescendants = Filter_t<Connections, Dependency>;
+        public:
+            struct type {
+                using Job = J;
+                using Descendants = Map_t<JobDescendants, GetDst>;
+            };
         };
-    };
-    using JobDependenciesMap = Map_t<
-            Map_t<AllJobs, FindJobDependencies>, // Dst Job List of List
-            Dependency>;
-
-    template<typename DEPS, typename OUT = TypeList<>, typename = void>
-    struct FindAllDependencies {
-        using type = OUT; // 边界case，结束递归时直接输出结果
-    };
-    template<typename DEPS, typename OUT>
-    class FindAllDependencies<DEPS, OUT, std::void_t<typename DEPS::head>> {
-        using J = typename DEPS::head; // 取出后继表中第一个Job
-        template <typename DEP> struct JDepsCond
-        { static constexpr bool value = std::is_same_v<typename DEP::Job, J>; };
-        using DepsResult = FindBy_t<JobDependenciesMap, JDepsCond>; // 从邻接表查找Job的后继节点列表
-            using JDeps = Unique_t<typename DepsResult::Dependencies>; // 去重操作
     public:
-        using type = typename FindAllDependencies<
-            typename JDeps::template exportTo<DEPS::tails::template append>::type,
-            typename OUT::template append<J>>::type; // 将得到的后继列表合并，进一步递归展开，并输出当前Job到列表
+        using type = Map_t<AllJobs, FindJobDescendants>;
     };
 
-    template<typename DEP>
-    struct FindJobAllDependencies {
-        struct type {
-            using Job = typename DEP::Job;
-            using AllDependencies = typename FindAllDependencies<typename DEP::Dependencies>::type;
+    // [<Job, Descendants>]
+    using JobDescendantsMap_t = typename JobDescendantsMap::type;
+
+    class SortedJobs {
+        template<typename DECENDS, typename OUT = TypeList<>>
+        class FindAllDescendants {
+            template<typename ACC, typename Job>
+            struct AppendDes {
+                template <typename DEP> struct JDepsCond:
+                    std::is_same<typename DEP::Job, Job> {};
+                using DepsResult = FindBy_t<JobDescendantsMap_t, JDepsCond>; // 从邻接表查找Job的后继节点列表
+
+                using type = typename FindAllDescendants<
+                    typename DepsResult::Descendants,
+                    typename ACC::template append<Job>>::type;
+            };
+        public:
+            using type = FoldL_t<DECENDS, OUT, AppendDes>;
         };
-    };
-    template<typename DEP>
-    struct GetJob { using type = typename DEP::Job; };
-    using JobAllDependenciesMap = Map_t<JobDependenciesMap, FindJobAllDependencies>;
 
-    template<typename LHS, typename RHS>
-    struct JobCmp {
-        static constexpr bool value =
-            Elem_v<typename LHS::AllDependencies, typename RHS::Job>;
+        template<typename DEP>
+        struct FindJobAllDescendants {
+            struct type {
+                using Job = typename DEP::Job;
+                using AllDescendants = typename FindAllDescendants<typename DEP::Descendants>::type;
+            };
+        };
+
+        template<typename DEP> struct GetJob: Return<typename DEP::Job> { };
+
+        using JobAllDescendantsMap = Map_t<JobDescendantsMap_t, FindJobAllDescendants>;
+
+        template<typename LHS, typename RHS>
+        struct JobCmp: Elem<typename LHS::AllDescendants, typename RHS::Job> { };
+    public:
+        using type = Map_t<typename Sort<JobAllDescendantsMap, JobCmp>::type, GetJob>;
     };
-    using SortedJobs = Map_t<typename Sort<JobAllDependenciesMap, JobCmp>::type, GetJob>;
 
     template<typename ...Jobs>
     struct Runable { };
+
     template<auto ...J>
     struct Runable<JobWrapper<J>...> {
-        void operator()() {
+        static constexpr void Run() {
             return (JobWrapper<J>{}(),...);
         }
     };
 
 public:
-    void Run() {
-        using Jobs = typename SortedJobs::template exportTo<Runable>;
-        return Jobs{}();
+    constexpr void Run() {
+        using Jobs = typename SortedJobs::type::template exportTo<Runable>;
+        return Jobs::Run();
     }
 };
 

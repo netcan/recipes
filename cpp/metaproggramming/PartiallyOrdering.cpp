@@ -15,23 +15,17 @@ struct Button:      Widget {};
 struct GraphButton: Button {};
 
 template<typename L, typename R>
-struct DerivedCMP {
-    static constexpr bool value = std::is_base_of_v<R, L>;
-};
+struct DerivedCMP: std::is_base_of<R, L> { };
 
-template<typename IN, template<typename, typename> class CMP,
-    typename OUT = typename IN::head, typename = void>
-struct SelectBest {
-    using type = OUT;
-};
+template<typename IN, template<typename, typename> class CMP>
+struct SelectBest;
 
-template<typename IN, template<typename, typename> class CMP, typename OUT>
-struct SelectBest<IN, CMP, OUT, std::void_t<typename IN::head>> {
-    using type = typename SelectBest<typename IN::tails, CMP,
-          std::conditional_t<
-              CMP<typename IN::head, OUT>::value,
-                typename IN::head,
-                OUT>>::type;
+template<typename H, typename ...Ts, template<typename, typename> class CMP>
+class SelectBest<TypeList<H, Ts...>, CMP> {
+    template<typename ACC, typename E>
+    struct Best: std::conditional<CMP<E, ACC>::value, E, ACC> { };
+public:
+    using type = FoldL_t<TypeList<H, Ts...>, H, Best>;
 };
 
 template<typename IN>
@@ -54,9 +48,8 @@ template<typename L, typename R>
 struct IntCmp;
 
 template<int lhs, int rhs>
-struct IntCmp<IntType<lhs>, IntType<rhs>> {
-    static constexpr bool value = lhs < rhs;
-};
+struct IntCmp<IntType<lhs>, IntType<rhs>>:
+    std::bool_constant<(lhs < rhs)> { };
 
 using UnorderedNumberList = TypeList<
     IntType<69>,

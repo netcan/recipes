@@ -161,7 +161,7 @@ public:
 };
 
 template<typename IN, typename E>
-class Elem: std::false_type { };
+struct Elem: std::false_type { };
 
 template<typename IN, typename E>
 constexpr bool Elem_v = Elem<IN, E>::value;
