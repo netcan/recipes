@@ -60,7 +60,7 @@ class Task {
     using JobDescendantsMap_t = typename JobDescendantsMap::type;
 
     class SortedJobs {
-        template<typename DECENDS, typename OUT = TypeList<>>
+        template<typename DECENDS>
         class FindAllDescendants {
             template<typename ACC, typename Job>
             struct AppendDes {
@@ -68,19 +68,19 @@ class Task {
                     std::is_same<typename DEP::Job, Job> {};
                 using DepsResult = FindBy_t<JobDescendantsMap_t, JDepsCond>; // 从邻接表查找Job的后继节点列表
 
-                using type = typename FindAllDescendants<
-                    typename DepsResult::Descendants,
-                    typename ACC::template append<Job>>::type;
+                using type = Concat_t<typename ACC::template append<Job>,
+                      typename FindAllDescendants<typename DepsResult::Descendants>::type>;
             };
         public:
-            using type = FoldL_t<DECENDS, OUT, AppendDes>;
+            using type = FoldL_t<DECENDS, TypeList<>, AppendDes>;
         };
 
         template<typename DEP>
         struct FindJobAllDescendants {
             struct type {
                 using Job = typename DEP::Job;
-                using AllDescendants = typename FindAllDescendants<typename DEP::Descendants>::type;
+                using AllDescendants =
+                    typename FindAllDescendants<typename DEP::Descendants>::type;
             };
         };
 
