@@ -13,15 +13,12 @@
 template<char c>
 using Cell = std::integral_constant<char, c>;
 
-template<size_t P = 0, size_t LEVEL = 0, typename ...Cells>
+template<size_t P = 0, bool INLOOP = false, typename ...Cells>
 struct Machine {
-    using type = Machine<P, LEVEL, Cells...>;
-
-    template<typename C>
-    using Prepend = Machine<P, LEVEL, C, Cells...>;
+    using type = Machine<P, INLOOP, Cells...>;
 
     constexpr static size_t PC = P;
-    constexpr static size_t Level = LEVEL;
+    constexpr static size_t InLoop = INLOOP;
 };
 
 struct MachineTrait {
@@ -44,68 +41,68 @@ struct MachineTrait {
     struct IsZero;
     template<typename MACHINE>
     using IsZero_t = typename IsZero<MACHINE>::type;
-    template<size_t PC, size_t LEVEL, typename C, typename... Cells>
-    struct IsZero<Machine<PC, LEVEL, C, Cells...>>: IsZero<Machine<PC - 1, LEVEL, Cells...>> {};
-    template<size_t LEVEL, typename C, typename... Cells>
-    struct IsZero<Machine<0, LEVEL, C, Cells...>>: std::bool_constant<C::value == 0> {};
+    template<size_t PC, bool INLOOP, typename C, typename... Cells>
+    struct IsZero<Machine<PC, INLOOP, C, Cells...>>: IsZero<Machine<PC - 1, INLOOP, Cells...>> {};
+    template<bool INLOOP, typename C, typename... Cells>
+    struct IsZero<Machine<0, INLOOP, C, Cells...>>: std::bool_constant<C::value == 0> {};
 
     template<typename MACHINE>
     struct Inc;
     template<typename MACHINE>
     using Inc_t = typename Inc<MACHINE>::type;
-    template<size_t PC, size_t LEVEL, typename C, typename... Cells>
-    struct Inc<Machine<PC, LEVEL, C, Cells...>>:
-        Concat_t<Machine<PC, LEVEL, C>, Inc_t<Machine<PC - 1, LEVEL, Cells...>>> {};
-    template<size_t LEVEL, typename C, typename... Cells>
-    struct Inc<Machine<0, LEVEL, C, Cells...>>:
-        Machine<0, LEVEL, Cell<C::value + 1>, Cells...> {};
+    template<size_t PC, bool INLOOP, typename C, typename... Cells>
+    struct Inc<Machine<PC, INLOOP, C, Cells...>>:
+        Concat_t<Machine<PC, INLOOP, C>, Inc_t<Machine<PC - 1, INLOOP, Cells...>>> {};
+    template<bool INLOOP, typename C, typename... Cells>
+    struct Inc<Machine<0, INLOOP, C, Cells...>>:
+        Machine<0, INLOOP, Cell<C::value + 1>, Cells...> {};
 
     template<typename MACHINE>
     struct Dec;
     template<typename MACHINE>
     using Dec_t = typename Dec<MACHINE>::type;
-    template<size_t PC, size_t LEVEL, typename C, typename... Cells>
-    struct Dec<Machine<PC, LEVEL, C, Cells...>>:
-        Concat_t<Machine<PC, LEVEL, C>, Dec_t<Machine<PC - 1, LEVEL, Cells...>>> {};
-    template<size_t LEVEL, typename C, typename... Cells>
-    struct Dec<Machine<0, LEVEL, C, Cells...>>:
-        Machine<0, LEVEL, Cell<C::value - 1>, Cells...> {};
+    template<size_t PC, bool INLOOP, typename C, typename... Cells>
+    struct Dec<Machine<PC, INLOOP, C, Cells...>>:
+        Concat_t<Machine<PC, INLOOP, C>, Dec_t<Machine<PC - 1, INLOOP, Cells...>>> {};
+    template<bool INLOOP, typename C, typename... Cells>
+    struct Dec<Machine<0, INLOOP, C, Cells...>>:
+        Machine<0, INLOOP, Cell<C::value - 1>, Cells...> {};
 
     template<typename MACHINE>
     struct Right;
     template<typename MACHINE>
     using Right_t = typename Right<MACHINE>::type;
-    template<size_t PC, size_t LEVEL, typename... Cells>
-    struct Right<Machine<PC, LEVEL, Cells...>>:
-        Machine<PC+1, LEVEL, Cells...> {};
+    template<size_t PC, bool INLOOP, typename... Cells>
+    struct Right<Machine<PC, INLOOP, Cells...>>:
+        Machine<PC+1, INLOOP, Cells...> {};
 
     template<typename MACHINE>
     struct Left;
     template<typename MACHINE>
     using Left_t = typename Left<MACHINE>::type;
-    template<size_t PC, size_t LEVEL, typename... Cells>
-    struct Left<Machine<PC, LEVEL, Cells...>>:
-        Machine<PC-1, LEVEL, Cells...> {};
+    template<size_t PC, bool INLOOP, typename... Cells>
+    struct Left<Machine<PC, INLOOP, Cells...>>:
+        Machine<PC-1, INLOOP, Cells...> {};
 
     template<typename MACHINE>
-    struct Lift;
+    struct EnableLoop;
     template<typename MACHINE>
-    using Lift_t = typename Lift<MACHINE>::type;
-    template<size_t PC, size_t LEVEL, typename... Cells>
-    struct Lift<Machine<PC, LEVEL, Cells...>>:
-        Machine<PC, LEVEL + 1, Cells...> {};
+    using EnableLoop_t = typename EnableLoop<MACHINE>::type;
+    template<size_t PC, bool INLOOP, typename... Cells>
+    struct EnableLoop<Machine<PC, INLOOP, Cells...>>:
+        Machine<PC, true, Cells...> {};
 
     template<typename MACHINE>
-    struct Fall;
+    struct DisableLoop;
     template<typename MACHINE>
-    using Fall_t = typename Fall<MACHINE>::type;
-    template<size_t PC, size_t LEVEL, typename... Cells>
-    struct Fall<Machine<PC, LEVEL, Cells...>>:
-        Machine<PC, LEVEL - 1, Cells...> {};
+    using DisableLoop_t = typename DisableLoop<MACHINE>::type;
+    template<size_t PC, bool INLOOP, typename... Cells>
+    struct DisableLoop<Machine<PC, INLOOP, Cells...>>:
+        Machine<PC, false, Cells...> {};
 
 
-    template<size_t PC, size_t LEVEL, typename ...Cells>
-    static auto ToStr(Machine<PC, LEVEL, Cells...>) {
+    template<size_t PC, bool INLOOP, typename ...Cells>
+    static auto ToStr(Machine<PC, INLOOP, Cells...>) {
         constexpr static char str[] = {
             Cells::value ...
         };
@@ -144,7 +141,7 @@ struct BrainFuck<MACHINE, false, '>', cs...>:
 
 template<typename MACHINE, char ...cs>
 struct BrainFuck<MACHINE, false, '[', cs...> {
-    using LiftedMachine = MachineTrait::Lift_t<MACHINE>;
+    using EnableLoopedMachine = MachineTrait::EnableLoop_t<MACHINE>;
 
     template<typename IN, bool = MachineTrait::IsZero_t<IN>::value>
     struct Select;
@@ -153,10 +150,10 @@ struct BrainFuck<MACHINE, false, '[', cs...> {
     template<typename IN> // loop
     struct Select<IN, false>: BrainFuck_t<IN, false, cs...> {};
 
-    using Result = typename Select<LiftedMachine>::type;
+    using Result = typename Select<EnableLoopedMachine>::type;
 
     template<typename IN, bool =
-        (! MachineTrait::IsZero_t<IN>::value && LiftedMachine::Level == IN::Level)>
+        (! MachineTrait::IsZero_t<IN>::value && EnableLoopedMachine::InLoop == IN::InLoop)>
     struct Loop;
     template<typename IN> // continue
     struct Loop<IN, true>: BrainFuck_t<IN, false, '[', cs...> {};
@@ -168,16 +165,16 @@ struct BrainFuck<MACHINE, false, '[', cs...> {
 
 template<typename MACHINE, char ...cs>
 struct BrainFuck<MACHINE, true, '[', cs...>:
-    BrainFuck_t<MachineTrait::Lift_t<MACHINE>, true, cs...> { };
+    BrainFuck_t<MachineTrait::EnableLoop_t<MACHINE>, true, cs...> { };
 
 template<typename MACHINE, char ...cs>
 struct BrainFuck<MACHINE, false, ']', cs...> {
-    using FallMachine = MachineTrait::Fall_t<MACHINE>;
+    using DisableLoopMachine = MachineTrait::DisableLoop_t<MACHINE>;
 
     template<typename IN, bool = MachineTrait::IsZero_t<IN>::value>
     struct Select;
     template<typename IN> // skip
-    struct Select<IN, true>: BrainFuck_t<FallMachine, false, cs...> {};
+    struct Select<IN, true>: BrainFuck_t<DisableLoopMachine, false, cs...> {};
 
     template<typename IN> // goback
     struct Select<IN, false>: MACHINE {};
@@ -187,7 +184,7 @@ struct BrainFuck<MACHINE, false, ']', cs...> {
 
 template<typename MACHINE, char ...cs>
 struct BrainFuck<MACHINE, true, ']', cs...>:
-    BrainFuck_t<MachineTrait::Fall_t<MACHINE>, true, cs...> { };
+    BrainFuck_t<MachineTrait::DisableLoop_t<MACHINE>, true, cs...> { };
 
 template<typename...>
 struct dump;
