@@ -132,7 +132,7 @@ using Sort_t = typename Sort<IN, CMP>::type;
 
 template<template<typename, typename> class CMP, typename H, typename ...Ts>
 class Sort<TypeList<H, Ts...>, CMP> {
-    template<typename E> struct LT: CMP<E, H> { };
+    template<typename E> using LT = CMP<E, H>;
     using P = Partition_t<TypeList<Ts...>, LT>;
     using SmallerSorted = Sort_t<typename P::satisfied, CMP>;
     using BiggerSorted = Sort_t<typename P::rest, CMP>;
