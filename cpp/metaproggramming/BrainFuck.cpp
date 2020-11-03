@@ -21,14 +21,14 @@ struct Machine {
     constexpr static size_t InLoop = INLOOP;
 };
 
-struct MachineTrait {
+namespace MachineTrait {
     template<typename T, typename U>
     struct Concat;
     template<typename T, typename U>
     using Concat_t = typename Concat<T, U>::type;
-    template<size_t P, size_t Q, size_t L, size_t R, typename ...Ts, typename ...Us>
-    struct Concat<Machine<P, Q, Ts...>, Machine<L, R, Us...>>: Machine<P, Q, Ts..., Us...> {};
 
+    template<size_t P, bool Q, size_t L, bool R, typename ...Ts, typename ...Us>
+    struct Concat<Machine<P, Q, Ts...>, Machine<L, R, Us...>>: Machine<P, Q, Ts..., Us...> {};
 
     template<size_t N>
     struct InitMachine: Concat_t<Machine<0, 0, Cell<0>>, typename InitMachine<N-1>::type> {};
@@ -100,16 +100,14 @@ struct MachineTrait {
     struct DisableLoop<Machine<PC, INLOOP, Cells...>>:
         Machine<PC, false, Cells...> {};
 
-
     template<size_t PC, bool INLOOP, typename ...Cells>
-    static auto ToStr(Machine<PC, INLOOP, Cells...>) {
-        constexpr static char str[] = {
+    static const auto ToStr(Machine<PC, INLOOP, Cells...>) {
+        constexpr const static char str[] = {
             Cells::value ...
         };
         return str;
     }
 };
-
 
 template<typename MACHINE, bool skip, char ...cs>
 struct BrainFuck: MACHINE {};
@@ -186,11 +184,8 @@ template<typename MACHINE, char ...cs>
 struct BrainFuck<MACHINE, true, ']', cs...>:
     BrainFuck_t<MachineTrait::DisableLoop_t<MACHINE>, true, cs...> { };
 
-template<typename...>
-struct dump;
-
 template<typename T, T... cs>
-auto operator ""_brain_fuck() {
+const auto operator ""_brain_fuck() {
     using Machine = MachineTrait::InitMachine_t<15>;
     using Result = BrainFuck_t<Machine, false, cs...>;
 
