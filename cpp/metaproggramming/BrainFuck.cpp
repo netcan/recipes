@@ -8,7 +8,6 @@
 ************************************************************************/
 #include <iostream>
 #include <type_traits>
-#include <string_view>
 
 template<char c>
 using Cell = std::integral_constant<char, c>;
@@ -26,7 +25,6 @@ namespace MachineTrait {
     struct Concat;
     template<typename T, typename U>
     using Concat_t = typename Concat<T, U>::type;
-
     template<size_t P, bool Q, size_t L, bool R, typename ...Ts, typename ...Us>
     struct Concat<Machine<P, Q, Ts...>, Machine<L, R, Us...>>: Machine<P, Q, Ts..., Us...> {};
 
@@ -101,10 +99,8 @@ namespace MachineTrait {
         Machine<PC, false, Cells...> {};
 
     template<size_t PC, bool INLOOP, typename ...Cells>
-    static const auto ToStr(Machine<PC, INLOOP, Cells...>) {
-        constexpr const static char str[] = {
-            Cells::value ...
-        };
+    inline const auto ToStr(Machine<PC, INLOOP, Cells...>) {
+        constexpr const static char str[] = { Cells::value ...  };
         return str;
     }
 };
@@ -162,10 +158,6 @@ struct BrainFuck<MACHINE, false, '[', cs...> {
 };
 
 template<typename MACHINE, char ...cs>
-struct BrainFuck<MACHINE, true, '[', cs...>:
-    BrainFuck_t<MachineTrait::EnableLoop_t<MACHINE>, true, cs...> { };
-
-template<typename MACHINE, char ...cs>
 struct BrainFuck<MACHINE, false, ']', cs...> {
     using DisableLoopMachine = MachineTrait::DisableLoop_t<MACHINE>;
 
@@ -180,10 +172,8 @@ struct BrainFuck<MACHINE, false, ']', cs...> {
     using type = typename Select<MACHINE>::type;
 };
 
-template<typename MACHINE, char ...cs>
-struct BrainFuck<MACHINE, true, ']', cs...>:
-    BrainFuck_t<MachineTrait::DisableLoop_t<MACHINE>, true, cs...> { };
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-string-literal-operator-template"
 template<typename T, T... cs>
 const auto operator ""_brain_fuck() {
     using Machine = MachineTrait::InitMachine_t<15>;
@@ -191,6 +181,7 @@ const auto operator ""_brain_fuck() {
 
     return MachineTrait::ToStr(Result{});
 };
+#pragma GCC diagnostic pop
 
 int main(int argc, char** argv) {
     std::cout << R"(
