@@ -1,0 +1,17 @@
+[package]
+name = "brain_fuck"
+version = "0.1.0"
+license = "MIT"
+description = "BrainFuck compiler in Rust procedural macro metaprogramming"
+homepage = "https://netcan.github.io/"
+repository = "https://github.com/netcan/recipes/tree/master/rust/BrainFuck"
+authors = ["netcan <1469709759@qq.com>"]
+readme = "README.md"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
