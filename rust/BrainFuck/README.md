@@ -12,12 +12,10 @@ Implementing in Rust procedural macro way.
 extern crate brain_fuck;
 use brain_fuck::brain_fuck;
 fn main() {
-    println!("{}", brain_fuck!("
-        ++++++++++[>+++++++>++++++++++
-        >+++>+<<<<-]>++.>+.+++++++.
-        .+++.>++.<<+++++++++++++++.>.
-        +++.------.--------.>+.>.
-    "));
+    println!("{}", brain_fuck!(
+        ++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.
+        >---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.
+    ));
 }
 ```
 
@@ -25,12 +23,8 @@ emit asm code:
 ```nasm
 brain_fuck::main::h3aaadb2fa73e0763:
 ...
-	.cfi_startproc
 	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset %rbp, -16
 	movq	%rsp, %rbp
-	.cfi_def_cfa_register %rbp
 	subq	$64, %rsp
 	leaq	l___unnamed_2(%rip), %rax
 	movq	%rax, -16(%rbp)
