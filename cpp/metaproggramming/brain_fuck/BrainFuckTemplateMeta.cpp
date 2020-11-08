@@ -6,7 +6,7 @@
     > Mail: 1469709759@qq.com
     > Created Time: 2020-11-03 22:20
 ************************************************************************/
-#include <iostream>
+#include <cstdio>
 #include <type_traits>
 
 template<char c>
@@ -138,21 +138,17 @@ struct BrainFuck<MACHINE, false, '[', cs...> {
     using EnableLoopedMachine = MachineTrait::EnableLoop_t<MACHINE>;
 
     template<typename IN, bool = MachineTrait::IsZero_t<IN>::value>
-    struct Select;
-    template<typename IN> // skip
-    struct Select<IN, true>: BrainFuck_t<IN, true, cs...> {};
+    struct Select: BrainFuck_t<IN, true, cs...> {}; // skip
     template<typename IN> // loop
     struct Select<IN, false>: BrainFuck_t<IN, false, cs...> {};
 
     using Result = typename Select<EnableLoopedMachine>::type;
 
     template<typename IN, bool =
-        (! MachineTrait::IsZero_t<IN>::value && EnableLoopedMachine::InLoop == IN::InLoop)>
-    struct Loop;
+        (! MachineTrait::IsZero_t<IN>::value && IN::InLoop)>
+    struct Loop: IN {};   // skip
     template<typename IN> // continue
     struct Loop<IN, true>: BrainFuck_t<IN, false, '[', cs...> {};
-    template<typename IN> // skip
-    struct Loop<IN, false>: IN {};
 
     using type = typename Loop<Result>::type;
 };
@@ -162,12 +158,9 @@ struct BrainFuck<MACHINE, false, ']', cs...> {
     using DisableLoopMachine = MachineTrait::DisableLoop_t<MACHINE>;
 
     template<typename IN, bool = MachineTrait::IsZero_t<IN>::value>
-    struct Select;
-    template<typename IN> // skip
+    struct Select: MACHINE {}; // goback
+    template<typename IN>      // skip
     struct Select<IN, true>: BrainFuck_t<DisableLoopMachine, false, cs...> {};
-
-    template<typename IN> // goback
-    struct Select<IN, false>: MACHINE {};
 
     using type = typename Select<MACHINE>::type;
 };
@@ -175,7 +168,7 @@ struct BrainFuck<MACHINE, false, ']', cs...> {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wgnu-string-literal-operator-template"
 template<typename T, T... cs>
-const auto operator ""_brain_fuck() {
+constexpr auto operator ""_brain_fuck() {
     using Machine = MachineTrait::InitMachine_t<15>;
     using Result = BrainFuck_t<Machine, false, cs...>;
 
@@ -184,20 +177,20 @@ const auto operator ""_brain_fuck() {
 #pragma GCC diagnostic pop
 
 int main(int argc, char** argv) {
-    std::cout << R"(
-    >++++++++[<+++++++++>-]<.                 ; H
-    >>++++++++++[<++++++++++>-]<+.            ; e
-    >>+++++++++[<++++++++++++>-]<.            ; l
-    >>+++++++++[<++++++++++++>-]<.            ; l
-    >>++++++++++[<+++++++++++>-]<+.           ; o
-    >>++++[<++++++++>-]<.                     ;
-    >>+++++++++++[<++++++++>-]<-.             ; W
-    >>++++++++++[<+++++++++++>-]<+.           ; o
-    >>++++++++++[<++++++++++++>-]<------.     ; r
-    >>+++++++++[<++++++++++++>-]<.            ; l
-    >>++++++++++[<++++++++++>-]<.             ; d
-    >>++++++[<++++++>-]<---.                  ; !
-    )"_brain_fuck << std::endl;
+    puts( R"(
+        >++++++++[<+++++++++>-]<.                 ; H
+        >>++++++++++[<++++++++++>-]<+.            ; e
+        >>+++++++++[<++++++++++++>-]<.            ; l
+        >>+++++++++[<++++++++++++>-]<.            ; l
+        >>++++++++++[<+++++++++++>-]<+.           ; o
+        >>++++[<++++++++>-]<.                     ;
+        >>+++++++++++[<++++++++>-]<-.             ; W
+        >>++++++++++[<+++++++++++>-]<+.           ; o
+        >>++++++++++[<++++++++++++>-]<------.     ; r
+        >>+++++++++[<++++++++++++>-]<.            ; l
+        >>++++++++++[<++++++++++>-]<.             ; d
+        >>++++++[<++++++>-]<---.                  ; !
+    )"_brain_fuck );
 
     return 0;
 }
