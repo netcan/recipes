@@ -49,8 +49,8 @@ constexpr static bool IsReflected_v =
 template<typename T, typename F, size_t... Is>
 inline constexpr void forEach(T&& obj, F&& f, std::index_sequence<Is...>) {
     using TDECAY = std::decay_t<T>;
-    (void(f(typename TDECAY::template FIELD<TDECAY, Is>(obj).name(),
-            typename TDECAY::template FIELD<TDECAY, Is>(obj).value())), ...);
+    (void(f(typename TDECAY::template FIELD<T, Is>(std::forward<T>(obj)).name(),
+            typename TDECAY::template FIELD<T, Is>(std::forward<T>(obj)).value())), ...);
 }
 
 template<typename T, typename F>
