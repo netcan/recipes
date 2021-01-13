@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <cstdio>
 #include <array>
 
 template<size_t N>

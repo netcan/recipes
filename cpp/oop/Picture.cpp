@@ -6,6 +6,7 @@
     > Created Time: 2019-10-29 23:01
 ************************************************************************/
 #include <iostream>
+#include <memory>
 #include <vector>
 #include <cassert>
 
