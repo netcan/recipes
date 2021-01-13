@@ -20,7 +20,7 @@ set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_C_FLAGS "-std=c99 -Wall")
 set(CMAKE_C_FLAGS_DEBUG "$ENV{CFLAGS} -O0 -g -ggdb")
 set(CMAKE_C_FLAGS_RELEASE "$ENV{CFLAGS} -O3")
-set(CMAKE_CXX_FLAGS "-Wall -Wno-sign-compare -Wno-return-type -Wno-unused-result -Wthread-safety -fno-rtti")
+set(CMAKE_CXX_FLAGS "-Wall -Wno-sign-compare -Wno-return-type -Wno-unused-result -fno-rtti -pthread")
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -g -ggdb -fno-omit-frame-pointer -fsanitize=undefined")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3")
 
