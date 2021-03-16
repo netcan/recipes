@@ -19,6 +19,7 @@ add_executable(Maybe Maybe.cpp)
 add_executable(BrainFuckTemplateMeta brain_fuck/BrainFuckTemplateMeta.cpp)
 add_executable(BrainFuckConstexpr brain_fuck/BrainFuckConstexpr.cpp)
 add_executable(NthPrime NthPrime.cpp)
+add_executable(MemberDetector MemberDetector.cpp)
 
 include_directories(.)
 target_link_libraries(Relational ${GTEST_BOTH_LIBRARIES})
