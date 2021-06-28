@@ -35,16 +35,16 @@
     };                                                                      \
 
 template<typename T, typename = void>
-struct IsRefected: std::false_type { };
+struct IsReflected: std::false_type { };
 
 template<typename T>
-struct IsRefected<T,
+struct IsReflected<T,
     std::void_t<decltype(&T::_field_count_)>>
     : std::true_type { };
 
 template<typename T>
 constexpr static bool IsReflected_v =
-    IsRefected<T>::value;
+    IsReflected<T>::value;
 
 template<typename T, typename F, size_t... Is>
 inline constexpr void forEach(T&& obj, F&& f, std::index_sequence<Is...>) {
