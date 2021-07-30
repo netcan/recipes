@@ -5,8 +5,9 @@
     > Mail: 1469709759@qq.com
     > Created Time: 2021-07-25 11:47
 ************************************************************************/
-// g++ -std=c++2a Calendar.cpp
+// g++-11 -std=c++2a Calendar.cpp
 #include <ranges>
+#include <chrono>
 #include <algorithm>
 #include <cstdio>
 #include <iostream>
@@ -16,87 +17,38 @@
 
 namespace ranges = std::ranges;
 namespace views = std::views;
+namespace chrono = std::chrono;
 ///////////////////////////////////////////////////////////////////////////////
 // Date
 struct Date {
     using difference_type = std::ptrdiff_t;
     Date() = default;
     Date(uint16_t year, uint16_t month, uint16_t day):
-        days(dayNumber(year, month, day)) { }
+        days_{ chrono::year(year) / chrono::month(month) / chrono::day(day) } { }
 
     friend bool operator==(const Date&, const Date&) = default;
-    Date& operator++()            { ++days; return *this;                 }
-    Date operator++(int)          { Date tmp(*this); ++*this; return tmp; }
-    uint16_t day() const          { return fromDayNumber().day;           }
-    uint16_t month() const        { return fromDayNumber().month;         }
-    const char* monthName() const { return MONTH_NAME[month()];           }
-    uint16_t year() const         { return fromDayNumber().year;          }
-    uint16_t week_number() const {
-        auto beginDays = dayNumber(year(), 1, 1);
-        unsigned long day = (beginDays + 3) % 7;
-        unsigned long week = (days + day - beginDays + 4)/7;
-
-        if ((week >= 1) && (week <= 52)) { return static_cast<int>(week); }
-
-        if (week == 53) {
-            if((day==6) ||(day == 5 && isLeapYear(year()))) {
-                return week; //under these circumstances week == 53.
-            } else {
-                return 1; //monday - wednesday is in week 1 of next year
-            }
-        }
-        //if the week is not in current year recalculate using the previous year as the beginning year
-        else if (week == 0) {
-            beginDays = dayNumber(year()-1,1,1);
-            day = (beginDays + 3) % 7;
-            week = (days + day - beginDays + 4)/7;
-            return week;
-        }
-        return week;  //not reachable -- well except if day == 5 and is_leap_year != true
+    Date& operator++()            { ++days_; return *this;                                               }
+    Date operator++(int)          { Date tmp(*this); ++*this; return tmp;                                }
+    uint16_t day() const          { return static_cast<unsigned>(chrono::year_month_day(days_).day());   }
+    uint16_t month() const        { return static_cast<unsigned>(chrono::year_month_day(days_).month()); }
+    const char* monthName() const { return MONTH_NAME[month()];                                          }
+    uint16_t year() const         { return static_cast<int>(chrono::year_month_day(days_).year());       }
+    bool weekdaylessThan(const Date& rhs) {
+        return chrono::weekday(days_).c_encoding() <
+            chrono::weekday(rhs.days_).c_encoding();
     }
     uint16_t dayOfWeek() const {
-        uint16_t a = static_cast<uint16_t>((14-month())/12);
-        uint16_t y = static_cast<uint16_t>(year() - a);
-        uint16_t m = static_cast<uint16_t>(month() + 12*a - 2);
-        uint16_t d = static_cast<uint16_t>((day() + y + (y/4) - (y/100) + (y/400) + (31*m)/12) % 7);
-        return d;
+        return chrono::weekday(days_).c_encoding();
     }
 
 private:
-    constexpr bool isLeapYear(uint16_t year) const {
-        return (!(year % 4))  && ((year % 100) || (!(year % 400)));
-    }
-    struct ymd {
-        uint16_t year;
-        uint16_t month;
-        uint16_t day;
-    };
-    constexpr long dayNumber(uint16_t year, uint16_t month, uint16_t day) const {
-        uint16_t a = static_cast<uint16_t>((14-month)/12);
-        uint16_t y = static_cast<uint16_t>(year + 4800 - a);
-        uint16_t m = static_cast<uint16_t>(month + 12*a - 3);
-        return day + ((153*m + 2)/5) + 365*y + (y/4) - (y/100) + (y/400) - 32045;
-    }
-    constexpr ymd fromDayNumber() const {
-        uint32_t a = days + 32044;
-        uint32_t b = (4*a + 3)/146097;
-        uint32_t c = a-((146097*b)/4);
-        uint32_t d = (4*c + 3)/1461;
-        uint32_t e = c - (1461*d)/4;
-        uint32_t m = (5*e + 2)/153;
-        uint16_t day = static_cast<uint16_t>(e - ((153*m + 2)/5) + 1);
-        uint16_t month = static_cast<uint16_t>(m + 3 - 12 * (m/10));
-        uint16_t year = static_cast<uint16_t>(100*b + d - 4800 + (m/10));
-        return {year,month,day};
-    }
-
     static constexpr const char* MONTH_NAME[] = {
         "", "January", "February", "March",
         "April", "May", "June", "July",
         "August", "September", "October",
         "November", "December",
     };
-    long days;
+    chrono::sys_days days_;
 };
 
 static_assert(std::weakly_incrementable<Date>);
@@ -254,22 +206,10 @@ private:
     RNGs rngs;
 };
 
-#if __GNUC__ > 10
-struct _Concat: views::__adaptor::_RangeAdaptor<_Concat> {
-    template<ranges::viewable_range... Rngs>
-    constexpr auto operator()(Rngs&&... rngs) const {
-        return concat_view{std::forward<Rngs>(rngs)...};
-    }
-    using views::__adaptor::_RangeAdaptor<_Concat>::operator();
+inline constexpr auto concat = [] <ranges::viewable_range... Rngs> (Rngs&&... rngs) {
+    return concat_view{std::forward<Rngs>(rngs)...};
 };
 
-inline constexpr _Concat concat;
-#else
-inline constexpr views::__adaptor::_RangeAdaptor concat
-    = [] <ranges::viewable_range... Rngs> (Rngs&&... rngs) {
-        return concat_view{std::forward<Rngs>(rngs)...};
-};
-#endif
 ///////////////////////////////////////////////////////////////////////////////
 // repeat_n
 template<typename Value>
@@ -523,7 +463,7 @@ auto by_month() {
 }
 
 auto by_week() {
-    return group_by([](Date a, Date b) { return (++a).week_number() == (++b).week_number(); });
+    return group_by([](Date a, Date b) { return a.weekdaylessThan(b); });
 }
 
 // TODO: c++20 std::format
@@ -583,17 +523,17 @@ auto join_months()
 }
 
 int main(int argc, char** argv) {
-    auto formatedCalendar
-        = datesBetween(2021, 2022)
-        | by_month()
-        | layout_months()
-        | chunk(3)
-        | transpose_months()
-        | views::join
-        | join_months()
+    auto formattedCalendar
+        = datesBetween(2021, 2022) // range<Date>: 356
+        | by_month()               // range<range<Date>>: 12 x month
+        | layout_months()          // range<range<std::string>>: 12 x 8 x 22
+        | chunk(3)                 // range<range<range<std::string>>>: 4 x 3 x 8 x 22
+        | transpose_months()       // range<range<range<std::string>>>: 4 x 8 x 3 x 22
+        | views::join              // range<range<std::string>>: 32 x 3 x 22
+        | join_months()            // range<std::string>: 32 x 66
         ;
 
-    ranges::copy(formatedCalendar,
+    ranges::copy(formattedCalendar,
                 std::ostream_iterator<std::string_view>(std::cout, "\n"));
 
     return 0;
