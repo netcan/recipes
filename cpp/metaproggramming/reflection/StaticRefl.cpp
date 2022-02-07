@@ -12,17 +12,17 @@
 #include "StaticRefl.hpp"
 
 template<typename T>
-void serializeObj(std::ostream& out, T&& obj,
+void serializeObj(std::ostream& out, const T& obj,
         const char* fieldName = "", int depth = 0) {
     auto indent = [&] {
         for (int i = 0; i < depth; ++i)
         { out << "    "; }
     };
 
-    if constexpr(IsReflected_v<std::decay_t<T>>) {
+    if constexpr(IsReflected_v<T>) {
         indent();
         out << fieldName << (*fieldName ? ": {" : "{") << std::endl;
-        forEach(std::forward<T>(obj),
+        forEach(obj,
                 [&](auto&& fieldName, auto&& value)
                 { serializeObj(out, value, fieldName, depth + 1); });
         indent();
@@ -34,16 +34,16 @@ void serializeObj(std::ostream& out, T&& obj,
 }
 
 template<typename T>
-void deserializeObj(std::istream& in, T&& obj,
+void deserializeObj(std::istream& in, T& obj,
         const char* fieldName = "") {
-    if constexpr(IsReflected_v<std::decay_t<T>>) {
+    if constexpr(IsReflected_v<T>) {
         std::string token;
         in >> token; // eat '{'
         if (*fieldName) {
             in >> token; // WARNING: needs check fieldName valid
         }
 
-        forEach(std::forward<T>(obj),
+        forEach(obj,
                 [&](auto&& fieldName, auto&& value)
                 { deserializeObj(in, value, fieldName); });
 
