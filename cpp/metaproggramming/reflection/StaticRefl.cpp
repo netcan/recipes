@@ -62,9 +62,9 @@ DEFINE_STRUCT(Point,
     (double) y);
 
 DEFINE_STRUCT(Rect,
-        (Point) p1,
-        (Point) p2,
-        (uint32_t) color);
+    (Point) p1,
+    (Point) p2,
+    (uint32_t) color);
 
 int main(int argc, char** argv) {
     std::stringstream result; // serialize result
