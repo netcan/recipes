@@ -34,7 +34,7 @@ struct OrderInsert {
 
 #define logw(fmt, ...) printf("%s: " fmt "\n", __FUNCTION__, ##__VA_ARGS__)
 #define logi(fmt, ...) printf("%s: " fmt "\n", __FUNCTION__, ##__VA_ARGS__)
-#define logd(fmt, ...)
+#define logd(fmt, ...) /* printf("%s: " fmt "\n", __FUNCTION__, ##__VA_ARGS__) */
 
 struct OrderBook {
     void on_order_insert(const OrderInsert& order_insert) {
