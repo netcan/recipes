@@ -144,7 +144,7 @@ private:
         logi("buy_volume price sell_volume max_volume");
         for (auto it = volume_.crbegin(); it != volume_.crend(); it++) {
             const auto& [price, order] = *it;
-            logi("%10d %5d %11d %10d", order.buy_volume, price, order.sell_volume, order.max_volume());
+            logi("%10d %5.2f %11d %10d", order.buy_volume, price / 100.0, order.sell_volume, order.max_volume());
         }
     }
 
