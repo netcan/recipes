@@ -2,7 +2,7 @@
 # @shanghai 2019/07/29 22:16
 cmake_minimum_required(VERSION 3.10)
 project(Practice LANGUAGES CXX C)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -29,4 +29,4 @@ add_subdirectory(clang-plugin)
 add_subdirectory(test)
 # add_subdirectory(lisp-parser)
 add_subdirectory(metaproggramming)
-# add_subdirectory(coroutine)
+add_subdirectory(coroutine)
