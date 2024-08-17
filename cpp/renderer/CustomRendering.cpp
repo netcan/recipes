@@ -5,10 +5,9 @@
     > Mail: netcan1996@gmail.com
     > Created Time: 2024-08-16 22:31
 ************************************************************************/
-#include "CustomRendering.h"
-#include "imgui/imgui.h"
 #include <SDL_rect.h>
 #include <cstdio>
+#include "CustomRendering.h"
 
 static constexpr void drawPixel(int x, int y, const ImVec4& color, SDL_Surface* surface) {
     if (x >= 0 && y >= 0 && x < surface->w && y < surface->h) {

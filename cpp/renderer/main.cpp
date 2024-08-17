@@ -5,12 +5,12 @@
     > Mail: netcan1996@gmail.com
     > Created Time: 2024-08-14 23:15
 ************************************************************************/
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
-#include "CustomRendering.h"
+#include <imgui/backends/imgui_impl_sdl2.h>
+#include <imgui/backends/imgui_impl_sdlrenderer2.h>
 #include <SDL_render.h>
 #include <SDL_surface.h>
 #include <stdio.h>
+#include "CustomRendering.h"
 
 // Main code
 int main(int, char **) {
