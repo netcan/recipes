@@ -105,7 +105,7 @@ int main(int, char **) {
             ImGui::End();
         }
 
-        customRendering.BresenhamLineDrawing();
+        customRendering.draw();
 
         // Rendering
         ImGui::Render();

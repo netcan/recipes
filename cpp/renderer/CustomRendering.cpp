@@ -9,27 +9,55 @@
 #include <cstdio>
 #include "CustomRendering.h"
 
-static constexpr void drawPixel(int x, int y, const ImVec4& color, SDL_Surface* surface) {
-    if (x >= 0 && y >= 0 && x < surface->w && y < surface->h) {
-        auto pixels = reinterpret_cast<Uint32*>(surface->pixels);
-        pixels[y * surface->w + x] = toSDLColor(surface->format, color);
+void CustomRendering::drawPixel(int x, int y) {
+    if (x >= 0 && y >= 0 && x < surface_->w && y < surface_->h) {
+        auto pixels = reinterpret_cast<Uint32 *>(surface_->pixels);
+        pixels[y * surface_->w + x] = toSDLColor(surface_->format, color_);
     }
 }
 
-static constexpr void line(int x0, int y0, int x1, int y1, const ImVec4& color, SDL_Surface* surface) {
-    for (float t = 0.; t < 1.; t += .01) {
-        int x = x0 + (x1 - x0) * t;
-        int y = y0 + (y1 - y0) * t;
-        drawPixel(x, y, color, surface);
+void CustomRendering::bresenhamLine(int x0, int y0, int x1, int y1) {
+    auto dx = abs(x1 - x0);
+    auto dy = abs(y1 - y0);
+    auto slope = dy > dx;
+
+    if (slope) {
+        std::swap(x0, y0);
+        std::swap(x1, y1);
+    }
+
+    if (x0 > x1) {
+        std::swap(x0, x1);
+        std::swap(y0, y1);
+    }
+
+    dx = abs(x1 - x0);
+    dy = abs(y1 - y0);
+    auto error = dx / 2;
+    auto y = y0;
+    auto ystep = y0 < y1 ? 1 : -1;
+
+    for (int x = x0; x <= x1; ++x) {
+        if (slope) {
+            drawPixel(y, x);
+        } else {
+            drawPixel(x, y);
+        }
+        error -= dy;
+        if (error < 0) {
+            y += ystep;
+            error += dx;
+        }
     }
 }
 
-void CustomRendering::BresenhamLineDrawing() {
+void CustomRendering::draw() {
     ImGui::Begin(__FUNCTION__);
     ImGui::ColorEdit4("color", (float *)&color_);
     ImGui::Text("surface: %p texture: %p", surface_.get(), texture_.get());
 
-    line(100, 200, 300, 400, color_, surface_.get());
+    bresenhamLine(13, 20, 600, 40);
+    bresenhamLine(20, 13, 40, 400);
     SDL_UpdateTexture(texture_.get(), NULL, surface_->pixels, surface_->pitch);
 
     ImGui::Image(texture_.get(), ImVec2(width_, height_), {0, 1}, {1, 0});

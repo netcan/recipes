@@ -26,7 +26,11 @@ constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, ImVec4 color) {
 
 struct CustomRendering {
     CustomRendering(SDL_Renderer *render) : render_(render) { }
-    void BresenhamLineDrawing();
+    void draw();
+
+private:
+    void bresenhamLine(int x0, int y0, int x1, int y1);
+    void drawPixel(int x, int y);
 
 private:
     SDL_Renderer *render_;
