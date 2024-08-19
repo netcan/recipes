@@ -51,13 +51,30 @@ void CustomRendering::bresenhamLine(int x0, int y0, int x1, int y1) {
     }
 }
 
+void CustomRendering::wireFrameDraw()
+{
+    for (const auto& face: model_.faces_) {
+        for (int j = 0; j < 3; j++) {
+            auto v0 = model_.verts_[face[j]];
+            auto v1 = model_.verts_[face[(j + 1) % 3]];
+            int x0 = (v0.x + 1.) * width_ / 2.;
+            int y0 = (v0.y + 1.) * height_ / 2.;
+            int x1 = (v1.x + 1.) * width_ / 2.;
+            int y1 = (v1.y + 1.) * height_ / 2.;
+            bresenhamLine(x0, y0, x1, y1);
+        }
+    }
+
+}
+
+
 void CustomRendering::draw() {
     ImGui::Begin(__FUNCTION__);
     ImGui::ColorEdit4("color", (float *)&color_);
     ImGui::Text("surface: %p texture: %p", surface_.get(), texture_.get());
+    ImGui::Text("vertex: %zu faces: %zu", model_.verts_.size(), model_.faces_.size());
 
-    bresenhamLine(13, 20, 600, 40);
-    bresenhamLine(20, 13, 40, 400);
+    wireFrameDraw();
     SDL_UpdateTexture(texture_.get(), NULL, surface_->pixels, surface_->pitch);
 
     ImGui::Image(texture_.get(), ImVec2(width_, height_), {0, 1}, {1, 0});

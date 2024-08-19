@@ -9,6 +9,7 @@
 #include <SDL_pixels.h>
 #include <memory>
 #include "imgui.h"
+#include "Model.h"
 #pragma once
 
 template<auto Fp>
@@ -31,16 +32,18 @@ struct CustomRendering {
 private:
     void bresenhamLine(int x0, int y0, int x1, int y1);
     void drawPixel(int x, int y);
+    void wireFrameDraw();
 
 private:
     SDL_Renderer *render_;
-    int width_{640};
-    int height_{480};
+    int width_{1280};
+    int height_{960};
     std::unique_ptr<SDL_Surface, Delector<SDL_FreeSurface>> surface_{
         SDL_CreateRGBSurfaceWithFormat(0, width_, height_, 32, SDL_PIXELFORMAT_ARGB8888)};
     std::unique_ptr<SDL_Texture, Delector<SDL_DestroyTexture>> texture_ {
         SDL_CreateTextureFromSurface(render_, surface_.get())
     };
     ImVec4 color_ {0.45f, 0.55f, 0.60f, 1.00f};
+    Model model_ {"renderer/AfricanHead.obj"};
 };
 

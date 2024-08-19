@@ -17,4 +17,6 @@ if (SDL2_FOUND)
         PRIVATE ${SDL2_INCLUDE_DIRS}
         PRIVATE ${CMAKE_SOURCE_DIR}/third_party/imgui/)
     target_link_libraries(renderer ${SDL2_LIBRARIES})
+
+    configure_file(AfricanHead.obj ${CMAKE_CURRENT_BINARY_DIR}/AfricanHead.obj COPYONLY)
 endif()
