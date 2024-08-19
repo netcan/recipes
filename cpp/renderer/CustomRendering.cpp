@@ -9,39 +9,39 @@
 #include <cstdio>
 #include "CustomRendering.h"
 
-void CustomRendering::drawPixel(int x, int y) {
-    if (x >= 0 && y >= 0 && x < surface_->w && y < surface_->h) {
+void CustomRendering::drawPixel(Point p) {
+    if (p.x >= 0 && p.y >= 0 && p.x < surface_->w && p.y < surface_->h) {
         auto pixels = reinterpret_cast<Uint32 *>(surface_->pixels);
-        pixels[y * surface_->w + x] = toSDLColor(surface_->format, color_);
+        pixels[p.y * surface_->w + p.x] = toSDLColor(surface_->format, color_);
     }
 }
 
-void CustomRendering::bresenhamLine(int x0, int y0, int x1, int y1) {
-    auto dx = abs(x1 - x0);
-    auto dy = abs(y1 - y0);
+void CustomRendering::bresenhamLine(Point p0, Point p1) {
+    auto dx = abs(p1.x - p0.x);
+    auto dy = abs(p1.y - p0.y);
     auto slope = dy > dx;
 
     if (slope) {
-        std::swap(x0, y0);
-        std::swap(x1, y1);
+        std::swap(p0.x, p0.y);
+        std::swap(p1.x, p1.y);
     }
 
-    if (x0 > x1) {
-        std::swap(x0, x1);
-        std::swap(y0, y1);
+    if (p0.x > p1.x) {
+        std::swap(p0.x, p1.x);
+        std::swap(p0.y, p1.y);
     }
 
-    dx = abs(x1 - x0);
-    dy = abs(y1 - y0);
+    dx = abs(p1.x - p0.x);
+    dy = abs(p1.y - p0.y);
     auto error = dx / 2;
-    auto y = y0;
-    auto ystep = y0 < y1 ? 1 : -1;
+    auto y = p0.y;
+    auto ystep = p0.y < p1.y ? 1 : -1;
 
-    for (int x = x0; x <= x1; ++x) {
+    for (int x = p0.x; x <= p1.x; ++x) {
         if (slope) {
-            drawPixel(y, x);
+            drawPixel({y, x});
         } else {
-            drawPixel(x, y);
+            drawPixel({x, y});
         }
         error -= dy;
         if (error < 0) {
@@ -61,7 +61,7 @@ void CustomRendering::wireFrameDraw()
             int y0 = (v0.y + 1.) * height_ / 2.;
             int x1 = (v1.x + 1.) * width_ / 2.;
             int y1 = (v1.y + 1.) * height_ / 2.;
-            bresenhamLine(x0, y0, x1, y1);
+            bresenhamLine({x0, y0}, {x1, y1});
         }
     }
 

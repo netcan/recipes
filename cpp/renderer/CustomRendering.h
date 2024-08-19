@@ -20,6 +20,11 @@ struct Delector {
     }
 };
 
+struct Point {
+    int x;
+    int y;
+};
+
 constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, ImVec4 color) {
     return SDL_MapRGBA(format, (Uint8)(color.x * 255), (Uint8)(color.y * 255), (Uint8)(color.z * 255),
                        (Uint8)(color.w * 255));
@@ -30,8 +35,8 @@ struct CustomRendering {
     void draw();
 
 private:
-    void bresenhamLine(int x0, int y0, int x1, int y1);
-    void drawPixel(int x, int y);
+    void bresenhamLine(Point p0, Point p1);
+    void drawPixel(Point p);
     void wireFrameDraw();
 
 private:
