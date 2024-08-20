@@ -34,15 +34,24 @@ struct CustomRendering {
     CustomRendering(SDL_Renderer *render) : render_(render) { }
     void draw();
 
+    enum RenderType: int {
+        WireFrameDraw,
+        TriangleRasterization,
+    };
+
 private:
     void bresenhamLine(Point p0, Point p1);
     void drawPixel(Point p);
     void wireFrameDraw();
 
 private:
+    void triangle(Point p0, Point p1, Point p2);
+    void triangleDraw();
+
+private:
     SDL_Renderer *render_;
-    int width_{1280};
-    int height_{960};
+    int width_{960};
+    int height_{720};
     std::unique_ptr<SDL_Surface, Delector<SDL_FreeSurface>> surface_{
         SDL_CreateRGBSurfaceWithFormat(0, width_, height_, 32, SDL_PIXELFORMAT_ARGB8888)};
     std::unique_ptr<SDL_Texture, Delector<SDL_DestroyTexture>> texture_ {
@@ -50,5 +59,6 @@ private:
     };
     ImVec4 color_ {0.45f, 0.55f, 0.60f, 1.00f};
     Model model_ {"renderer/AfricanHead.obj"};
+    RenderType renderType_;
 };
 
