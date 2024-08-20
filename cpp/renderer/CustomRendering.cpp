@@ -69,27 +69,24 @@ void CustomRendering::wireFrameDraw()
     }
 }
 
-void CustomRendering::triangle(Point p0, Point p1, Point p2)
+void CustomRendering::triangle(Point a, Point b, Point c)
 {
-    std::vector<Point> p {p0, p1, p2};
-    std::ranges::sort(p, std::less{}, &Point::y);
-    auto [lx, rx] = std::minmax({p0.x, p1.x, p2.x});
+    int lx = std::max(0, std::min({a.x, b.x, c.x}));
+    int ly = std::max(0, std::min({a.y, b.y, c.y}));
+    int rx = std::min(width_, std::max({a.x, b.x, c.x}));
+    int ry = std::min(height_, std::max({a.y, b.y, c.y}));
 
-    auto fx = [](const Point& p0, const Point& p1, int y) {
-        return (int)std::ceil(p0.x + (y - p0.y) * (p1.x - p0.x) * 1.0 / (p1.y - p0.y));
-    };
-
-
-    for (int y = p[0].y; y <= p[2].y; ++y) {
-        int x[] = {fx(p0, p1, y), fx(p0, p2, y), fx(p1, p2, y)};
-        std::ranges::sort(x);
-        std::vector<int> resultX;
-        for (auto cx: x) {
-            if (cx >= lx && cx <= rx) {
-                resultX.emplace_back(cx);
+    for (int x = lx; x <= rx; ++x) {
+        for (int y = ly; y <= ry; ++y) {
+            Vec2i p {x, y};
+            auto ab = b - a, bc = c - b, ca = a - c;
+            auto ap = p - a, bp = p - b, cp = p - c;
+            auto c1 = crossProd(ab, ap), c2 = crossProd(bc, bp), c3 = crossProd(ca, cp);
+            // whether a point belongs to triangle
+            if (((c1 >= 0) && (c2 >= 0) && (c3 >= 0)) || ((c1 <= 0) && (c2 <= 0) && (c3 <= 0))) {
+                drawPixel(p);
             }
         }
-        bresenhamLine({resultX.front(), y}, {resultX.back(), y});
     }
 }
 

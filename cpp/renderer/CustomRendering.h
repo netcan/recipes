@@ -8,6 +8,7 @@
 #include <SDL.h>
 #include <SDL_pixels.h>
 #include <memory>
+#include "Geometry.hpp"
 #include "imgui.h"
 #include "Model.h"
 #pragma once
@@ -18,11 +19,6 @@ struct Delector {
     constexpr auto operator()(Args&&... args) const noexcept {
         return Fp(std::forward<Args>(args)...);
     }
-};
-
-struct Point {
-    int x;
-    int y;
 };
 
 constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, ImVec4 color) {
@@ -45,7 +41,7 @@ private:
     void wireFrameDraw();
 
 private:
-    void triangle(Point p0, Point p1, Point p2);
+    void triangle(Point a, Point b, Point c);
     void triangleDraw();
 
 private:
@@ -59,6 +55,6 @@ private:
     };
     ImVec4 color_ {0.45f, 0.55f, 0.60f, 1.00f};
     Model model_ {"renderer/AfricanHead.obj"};
-    RenderType renderType_;
+    RenderType renderType_ {};
 };
 
