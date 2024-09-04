@@ -79,9 +79,9 @@ void CustomRendering::triangle(Point a, Point b, Point c)
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
             Vec2i p {x, y};
-            auto ab = b - a, bc = c - b, ca = a - c;
-            auto ap = p - a, bp = p - b, cp = p - c;
-            auto c1 = crossProd(ab, ap), c2 = crossProd(bc, bp), c3 = crossProd(ca, cp);
+            auto ab = (b - a).lift(), bc = (c - b).lift(), ca = (a - c).lift();
+            auto ap = (p - a).lift(), bp = (p - b).lift(), cp = (p - c).lift();
+            auto c1 = cross(ab, ap).z, c2 = cross(bc, bp).z, c3 = cross(ca, cp).z;
             // whether a point belongs to triangle
             if (((c1 >= 0) && (c2 >= 0) && (c3 >= 0)) || ((c1 <= 0) && (c2 <= 0) && (c3 <= 0))) {
                 drawPixel(p);
