@@ -1,0 +1,2 @@
+CompileFlags:
+    Add: [-DSDL_DYNAMIC_API=0]
