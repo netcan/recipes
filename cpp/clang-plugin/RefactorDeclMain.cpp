@@ -10,10 +10,10 @@
 
 int main(int argc, const char** argv) {
     static llvm::cl::OptionCategory RewriteDeclCategory("RewriteDecl");
-    clang::tooling::CommonOptionsParser OptionsParser(argc, argv,
+    auto OptionsParser = clang::tooling::CommonOptionsParser::create(argc, argv,
             RewriteDeclCategory);
-    clang::tooling::RefactoringTool Tool(OptionsParser.getCompilations(),
-            OptionsParser.getSourcePathList());
+    clang::tooling::RefactoringTool Tool(OptionsParser.get().getCompilations(),
+            OptionsParser.get().getSourcePathList());
     return Tool.runAndSave(
             clang::tooling::newFrontendActionFactory<RewriteDecl>()
             .get());

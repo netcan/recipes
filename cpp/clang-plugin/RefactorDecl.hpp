@@ -72,7 +72,7 @@ void RewriteDeclMatcher::run(const MatchFinder::MatchResult& Result) {
                 F->isImplicit()) {
             continue;
         }
-        if (! F->isPure()) return;
+        if (! F->isPureVirtual()) return;
     }
 
     {
@@ -92,7 +92,7 @@ void RewriteDeclMatcher::run(const MatchFinder::MatchResult& Result) {
                 R.setEnd(R.getEnd().getLocWithOffset(1)); // eat ';'
                 RewriteDeclWriter.RemoveText(R, rmOps);
             }
-            if (F->isPure()) {
+            if (F->isPureVirtual()) {
                 const TypeSourceInfo* TSI = F->getTypeSourceInfo();
                 if (auto Proto = TSI->getType()->getAs<FunctionProtoType>();
                         Proto && Proto->hasTrailingReturn()) { continue; }
