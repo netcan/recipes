@@ -36,12 +36,12 @@ struct CustomRendering {
     };
 
 private:
-    void bresenhamLine(Point p0, Point p1);
-    void drawPixel(Point p);
+    void bresenhamLine(Point p0, Point p1, const ImVec4& color);
+    void drawPixel(Point p, const ImVec4& color);
     void wireFrameDraw();
 
 private:
-    void triangle(Point a, Point b, Point c);
+    void triangle(Point a, Point b, Point c, const ImVec4& color);
     void triangleDraw();
 
 private:
@@ -54,6 +54,6 @@ private:
     };
     ImVec4 color_ {0.45f, 0.55f, 0.60f, 1.00f};
     Model model_ {"renderer/AfricanHead.obj"};
-    RenderType renderType_ {};
+    RenderType renderType_ {TriangleRasterization};
 };
 

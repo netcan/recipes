@@ -119,7 +119,9 @@ constexpr Vec<T, 3> cross(const Vec<T, 3>& lhs, const Vec<T, 3>& rhs) {
 }
 
 template <NumericType T, size_t N> constexpr T norm(const Vec<T, N> &v) { return std::sqrt(v * v); }
-template <NumericType T, size_t N> constexpr T normalize(const Vec<T, N> &v, T l = 1) { return v * (l / norm(v)); }
+template <NumericType T, size_t N> constexpr Vec<T, N> normalize(const Vec<T, N> &v, T l = 1) {
+    return v * (l / norm(v));
+}
 
 namespace details {
 struct AnyType {

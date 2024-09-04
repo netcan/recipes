@@ -9,15 +9,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include "CustomRendering.h"
+#include "imgui.h"
 
-void CustomRendering::drawPixel(Point p) {
+void CustomRendering::drawPixel(Point p, const ImVec4& color) {
     if (p.x >= 0 && p.y >= 0 && p.x < surface_->w && p.y < surface_->h) {
         auto pixels = reinterpret_cast<Uint32 *>(surface_->pixels);
-        pixels[p.y * surface_->w + p.x] = toSDLColor(surface_->format, color_);
+        pixels[p.y * surface_->w + p.x] = toSDLColor(surface_->format, color);
     }
 }
 
-void CustomRendering::bresenhamLine(Point p0, Point p1) {
+void CustomRendering::bresenhamLine(Point p0, Point p1, const ImVec4& color) {
     auto dx = abs(p1.x - p0.x);
     auto dy = abs(p1.y - p0.y);
     auto slope = dy > dx;
@@ -40,9 +41,9 @@ void CustomRendering::bresenhamLine(Point p0, Point p1) {
 
     for (int x = p0.x; x <= p1.x; ++x) {
         if (slope) {
-            drawPixel({y, x});
+            drawPixel({y, x}, color);
         } else {
-            drawPixel({x, y});
+            drawPixel({x, y}, color);
         }
         error -= dy;
         if (error < 0) {
@@ -54,7 +55,6 @@ void CustomRendering::bresenhamLine(Point p0, Point p1) {
 
 void CustomRendering::wireFrameDraw()
 {
-    ImGui::Text("vertex: %zu faces: %zu", model_.verts_.size(), model_.faces_.size());
     for (const auto& face: model_.faces_) {
         for (int j = 0; j < 3; j++) {
             auto v0 = vec_cast<Vec2f>(model_.verts_[face[j]]);
@@ -63,12 +63,12 @@ void CustomRendering::wireFrameDraw()
             int y0 = (v0.y + 1.) * canvasSize_.y / 2.;
             int x1 = (v1.x + 1.) * canvasSize_.x / 2.;
             int y1 = (v1.y + 1.) * canvasSize_.y / 2.;
-            bresenhamLine({x0, y0}, {x1, y1});
+            bresenhamLine({x0, y0}, {x1, y1}, color_);
         }
     }
 }
 
-void CustomRendering::triangle(Point a, Point b, Point c)
+void CustomRendering::triangle(Point a, Point b, Point c, const ImVec4& color)
 {
     int lx = std::max(0, std::min({a.x, b.x, c.x}));
     int ly = std::max(0, std::min({a.y, b.y, c.y}));
@@ -83,16 +83,28 @@ void CustomRendering::triangle(Point a, Point b, Point c)
             auto c1 = cross(ab, ap).z, c2 = cross(bc, bp).z, c3 = cross(ca, cp).z;
             // whether a point belongs to triangle
             if (((c1 >= 0) && (c2 >= 0) && (c3 >= 0)) || ((c1 <= 0) && (c2 <= 0) && (c3 <= 0))) {
-                drawPixel(p);
+                drawPixel(p, color);
             }
         }
     }
 }
 
 void CustomRendering::triangleDraw() {
-    triangle({10, 70}, {50, 160}, {70, 80});
-    triangle({180, 50}, {150, 1}, {70, 180});
-    triangle({180, 150}, {120, 160}, {130, 180});
+    Vec light { 0., 0., -1. };
+    for (const auto& face: model_.faces_) {
+        Vec2i screenCoords[3];
+        Vec3f worldCoords[3];
+        for (size_t i = 0; i < std::size(screenCoords); ++i) {
+            const auto& v = model_.verts_[face[i]];
+            screenCoords[i] = Vec2i((v.x + 1.) * canvasSize_.x / 2., (v.y + 1.) * canvasSize_.y / 2.);
+            worldCoords[i] = v;
+        }
+        auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
+        if (auto intensity = light * n; intensity > 0) {
+            triangle(screenCoords[0], screenCoords[1], screenCoords[2],
+                    ImVec4(intensity * color_.x, intensity * color_.y, intensity * color_.z, 1));
+        }
+    }
 }
 
 static constexpr const char* RenderItems[] = {
@@ -105,6 +117,7 @@ void CustomRendering::draw() {
     ImGui::Begin(__FUNCTION__);
     ImGui::ColorEdit4("color", (float *)&color_);
     ImGui::Text("surface: %p texture: %p", surface_.get(), texture_.get());
+    ImGui::Text("vertex: %zu faces: %zu", model_.verts_.size(), model_.faces_.size());
     ImGui::Combo("renderType", (int*)&renderType_, RenderItems, std::size(RenderItems));
 
     switch (renderType_) {
