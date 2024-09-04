@@ -1,3 +1,6 @@
 [submodule "cpp/renderer/imgui"]
 	path = cpp/third_party/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "cpp/third_party/SDL"]
+	path = cpp/third_party/SDL
+	url = https://github.com/libsdl-org/SDL.git
