@@ -8,6 +8,7 @@
 #include <SDL_rect.h>
 #include <cstdio>
 #include <cstdlib>
+#include <base/TimePerf.hpp>
 #include "CustomRendering.h"
 #include "imgui.h"
 
@@ -91,20 +92,25 @@ void CustomRendering::triangle(Point a, Point b, Point c, const ImVec4& color)
 
 void CustomRendering::triangleDraw() {
     Vec light { 0., 0., -1. };
-    for (const auto& face: model_.faces_) {
-        Vec2i screenCoords[3];
-        Vec3f worldCoords[3];
-        for (size_t i = 0; i < std::size(screenCoords); ++i) {
-            const auto& v = model_.verts_[face[i]];
-            screenCoords[i] = Vec2i((v.x + 1.) * canvasSize_.x / 2., (v.y + 1.) * canvasSize_.y / 2.);
-            worldCoords[i] = v;
-        }
-        auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
-        if (auto intensity = light * n; intensity > 0) {
-            triangle(screenCoords[0], screenCoords[1], screenCoords[2],
-                    ImVec4(intensity * color_.x, intensity * color_.y, intensity * color_.z, 1));
+    utils::high_resolution_clock::duration duration;
+    {
+        utils::TimePerf perf{duration};
+        for (const auto &face : model_.faces_) {
+            Vec2i screenCoords[3];
+            Vec3f worldCoords[3];
+            for (size_t i = 0; i < std::size(screenCoords); ++i) {
+                const auto &v = model_.verts_[face[i]];
+                screenCoords[i] = Vec2i((v.x + 1.) * canvasSize_.x / 2., (v.y + 1.) * canvasSize_.y / 2.);
+                worldCoords[i] = v;
+            }
+            auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
+            if (auto intensity = light * n; intensity > 0) {
+                triangle(screenCoords[0], screenCoords[1], screenCoords[2],
+                        ImVec4(intensity * color_.x, intensity * color_.y, intensity * color_.z, 1));
+            }
         }
     }
+    printf("triangle elapsed: %lld us per loop\n", std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
 }
 
 static constexpr const char* RenderItems[] = {
