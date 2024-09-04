@@ -6,7 +6,6 @@
     > Created Time: 2024-08-16 22:31
 ************************************************************************/
 #include <SDL_rect.h>
-#include <ranges>
 #include <cstdio>
 #include <cstdlib>
 #include "CustomRendering.h"
@@ -58,12 +57,12 @@ void CustomRendering::wireFrameDraw()
     ImGui::Text("vertex: %zu faces: %zu", model_.verts_.size(), model_.faces_.size());
     for (const auto& face: model_.faces_) {
         for (int j = 0; j < 3; j++) {
-            auto v0 = model_.verts_[face[j]];
-            auto v1 = model_.verts_[face[(j + 1) % 3]];
-            int x0 = (v0.x + 1.) * width_ / 2.;
-            int y0 = (v0.y + 1.) * height_ / 2.;
-            int x1 = (v1.x + 1.) * width_ / 2.;
-            int y1 = (v1.y + 1.) * height_ / 2.;
+            auto v0 = vec_cast<Vec2f>(model_.verts_[face[j]]);
+            auto v1 = vec_cast<Vec2f>(model_.verts_[face[(j + 1) % 3]]);
+            int x0 = (v0.x + 1.) * canvasSize_.x / 2.;
+            int y0 = (v0.y + 1.) * canvasSize_.y / 2.;
+            int x1 = (v1.x + 1.) * canvasSize_.x / 2.;
+            int y1 = (v1.y + 1.) * canvasSize_.y / 2.;
             bresenhamLine({x0, y0}, {x1, y1});
         }
     }
@@ -73,14 +72,14 @@ void CustomRendering::triangle(Point a, Point b, Point c)
 {
     int lx = std::max(0, std::min({a.x, b.x, c.x}));
     int ly = std::max(0, std::min({a.y, b.y, c.y}));
-    int rx = std::min(width_, std::max({a.x, b.x, c.x}));
-    int ry = std::min(height_, std::max({a.y, b.y, c.y}));
+    int rx = std::min(canvasSize_.x, std::max({a.x, b.x, c.x}));
+    int ry = std::min(canvasSize_.y, std::max({a.y, b.y, c.y}));
 
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
-            Vec2i p {x, y};
-            auto ab = (b - a).lift(), bc = (c - b).lift(), ca = (a - c).lift();
-            auto ap = (p - a).lift(), bp = (p - b).lift(), cp = (p - c).lift();
+            Vec p {x, y};
+            auto ab = vec_cast<Vec3i>(b - a), bc = vec_cast<Vec3i>(c - b), ca = vec_cast<Vec3i>(a - c);
+            auto ap = vec_cast<Vec3i>(p - a), bp = vec_cast<Vec3i>(p - b), cp = vec_cast<Vec3i>(p - c);
             auto c1 = cross(ab, ap).z, c2 = cross(bc, bp).z, c3 = cross(ca, cp).z;
             // whether a point belongs to triangle
             if (((c1 >= 0) && (c2 >= 0) && (c3 >= 0)) || ((c1 <= 0) && (c2 <= 0) && (c3 <= 0))) {
@@ -121,7 +120,7 @@ void CustomRendering::draw() {
 
     SDL_UpdateTexture(texture_.get(), NULL, surface_->pixels, surface_->pitch);
     SDL_FillRect(surface_.get(), NULL, 0x000000);
-    ImGui::Image(texture_.get(), ImVec2(width_, height_), {0, 1}, {1, 0});
+    ImGui::Image(texture_.get(), vec_cast<ImVec2>(canvasSize_), {0, 1}, {1, 0});
 
     ImGui::End();
 }

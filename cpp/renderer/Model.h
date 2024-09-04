@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <imgui.h>
+#include "renderer/Geometry.hpp"
 
 struct Model {
 	Model(const char *filename) {
@@ -26,7 +27,7 @@ struct Model {
             char trash;
             if (!line.compare(0, 2, "v ")) {
                 iss >> trash;
-                ImVec4 v{};
+                Vec3f v{};
                 iss >> v.x >> v.y >> v.z;
                 verts_.push_back(v);
             } else if (!line.compare(0, 2, "f ")) {
@@ -41,6 +42,6 @@ struct Model {
         }
     }
 
-	std::vector<ImVec4> verts_;
+	std::vector<Vec3f> verts_;
 	std::vector<std::vector<int> > faces_;
 };

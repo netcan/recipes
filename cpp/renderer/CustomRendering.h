@@ -46,10 +46,9 @@ private:
 
 private:
     SDL_Renderer *render_;
-    int width_{960};
-    int height_{720};
+    Vec2i canvasSize_ {960, 720};
     std::unique_ptr<SDL_Surface, Delector<SDL_FreeSurface>> surface_{
-        SDL_CreateRGBSurfaceWithFormat(0, width_, height_, 32, SDL_PIXELFORMAT_ARGB8888)};
+        SDL_CreateRGBSurfaceWithFormat(0, canvasSize_.x, canvasSize_.y, 32, SDL_PIXELFORMAT_ARGB8888)};
     std::unique_ptr<SDL_Texture, Delector<SDL_DestroyTexture>> texture_ {
         SDL_CreateTextureFromSurface(render_, surface_.get())
     };

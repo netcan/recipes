@@ -5,11 +5,13 @@
     > Mail: netcan1996@gmail.com
     > Created Time: 2024-08-20 23:27
 ************************************************************************/
+#pragma once
+#include <algorithm>
 #include <cmath>
 #include <concepts>
 #include <stdexcept>
+#include <utility>
 
-#pragma once
 template <typename T>
 concept NumericType = std::integral<T> || std::floating_point<T>;
 
@@ -29,7 +31,6 @@ struct Vec {
         }
         throw std::out_of_range("vector");
     }
-    constexpr T norm() const { return std::sqrt(*this * *this); }
 };
 
 template <NumericType T> struct Vec<T, 2> {
@@ -47,8 +48,6 @@ template <NumericType T> struct Vec<T, 2> {
             throw std::out_of_range("vector");
         return i == 0 ? x : y;
     }
-    constexpr T norm() const { return std::sqrt(*this * *this); }
-    constexpr Vec<T, 3> lift() { return {x, y, 0}; }
 };
 
 template <NumericType T> struct Vec<T, 3> {
@@ -67,14 +66,7 @@ template <NumericType T> struct Vec<T, 3> {
             throw std::out_of_range("vector");
         return (i == 0) ? x : (i == 1) ? y : z;
    }
-    constexpr T norm() const { return std::sqrt(*this * *this); }
 };
-
-using Point = Vec<int, 2>;
-using Vec2i = Vec<int, 2>;
-using Vec3i = Vec<int, 3>;
-using Vec2f = Vec<double, 2>;
-using Vec3f = Vec<double, 3>;
 
 template<NumericType T, size_t N>
 constexpr Vec<T, N> operator+(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
@@ -125,3 +117,39 @@ constexpr Vec<T, 3> cross(const Vec<T, 3>& lhs, const Vec<T, 3>& rhs) {
         lhs.x * rhs.y - lhs.y * rhs.x
     };
 }
+
+template <NumericType T, size_t N> constexpr T norm(const Vec<T, N> &v) { return std::sqrt(v * v); }
+template <NumericType T, size_t N> constexpr T normalize(const Vec<T, N> &v, T l = 1) { return v * (l / norm(v)); }
+
+namespace details {
+struct AnyType {
+    template <typename T> operator T();
+};
+template <typename T> consteval size_t CountMember(auto &&...Args) {
+    if constexpr (!requires { T{Args...}; }) {
+        return sizeof...(Args) - 1;
+    } else {
+        return CountMember<T>(Args..., AnyType{});
+    }
+}
+} // namespace details
+
+template <typename R, NumericType T, size_t N>
+constexpr R vec_cast(const Vec<T, N> &v) {
+    constexpr size_t RN = details::CountMember<R>();
+    return [&v]<size_t... Is>(std::index_sequence<Is...>) {
+        return R (v[Is]...);
+    }(std::make_index_sequence<std::min(N, RN)>{});
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+using Point = Vec<int, 2>;
+using Vec2i = Vec<int, 2>;
+using Vec3i = Vec<int, 3>;
+using Vec2f = Vec<double, 2>;
+using Vec3f = Vec<double, 3>;
+
+template <NumericType T, typename... Args>
+requires(std::same_as<T, Args> && ...)
+Vec(T, Args...) -> Vec<T, sizeof...(Args) + 1>;
+
