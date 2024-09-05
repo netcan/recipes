@@ -3,10 +3,10 @@
  * @shanghai
  */
 #include <gtest/gtest.h>
-#include "base/Construct.hpp"
+#include "utils/Construct.hpp"
 #include <functional>
 
-using namespace base;
+using namespace utils;
 
 TEST(TestConstruct, testConstruct) {
     struct HasConstruct {

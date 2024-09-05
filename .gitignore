@@ -4,6 +4,6 @@ compile_commands.json
 *.o
 *.out
 *.gch
-build/
+build-*/
 target/
 .cache

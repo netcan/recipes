@@ -7,7 +7,7 @@
 ************************************************************************/
 #ifndef __OBSERVER_H__
 #define __OBSERVER_H__
-namespace base {
+namespace utils {
 class Observable;
 class Observer {
     public:

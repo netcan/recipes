@@ -17,7 +17,6 @@ include_directories(${GTEST_INCLUDE_DIR})
 include_directories(.
     third_party)
 
-set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_C_FLAGS "-std=c99 -Wall")
 set(CMAKE_C_FLAGS_DEBUG "$ENV{CFLAGS} -O0 -g -ggdb")
 set(CMAKE_C_FLAGS_RELEASE "$ENV{CFLAGS} -O3")

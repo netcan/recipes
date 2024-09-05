@@ -10,7 +10,7 @@
 #define __SCOPE_GUARD_H__
 #include <memory>
 
-namespace base {
+namespace utils {
 template<typename Fn>
 class ScopeGuard {
 public:

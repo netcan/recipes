@@ -7,7 +7,7 @@
  ************************************************************************/
 #ifndef __RETCODE_H__
 #define __RETCODE_H__
-namespace base {
+namespace utils {
 enum RetCode {
     OK = 0,
     SYSTEM_ERROR

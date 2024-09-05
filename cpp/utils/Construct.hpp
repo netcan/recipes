@@ -10,7 +10,7 @@
 #include <memory>
 #include "RetCode.hpp"
 
-namespace base {
+namespace utils {
 template <typename T>
 static auto CallOnConstructed(T* obj) -> decltype(obj->OnConstructed(), RetCode()) {
     return obj->OnConstructed();

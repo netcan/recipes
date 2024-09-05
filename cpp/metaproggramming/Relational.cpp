@@ -3,7 +3,7 @@
  * @shanghai
  */
 #include <gtest/gtest.h>
-#include "base/Construct.hpp"
+#include "utils/Construct.hpp"
 #include <functional>
 
 template<typename T>
