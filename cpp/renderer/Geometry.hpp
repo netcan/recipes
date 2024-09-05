@@ -35,8 +35,15 @@ struct Vec {
 
 template <NumericType T> struct Vec<T, 2> {
     using value_type = T;
-    T x{};
-    T y{};
+    union {
+        struct {
+            T x, y;
+        };
+        struct {
+            T u, v;
+        };
+    };
+    constexpr Vec(T x = {}, T y = {}) : x{x}, y{y} {}
     constexpr T &operator[](const size_t i) {
         if (i >= 2)
             throw std::out_of_range("vector");
@@ -52,9 +59,15 @@ template <NumericType T> struct Vec<T, 2> {
 
 template <NumericType T> struct Vec<T, 3> {
     using value_type = T;
-    T x{};
-    T y{};
-    T z{};
+    union {
+        struct {
+            T x, y, z;
+        };
+        struct {
+            T u, v, w;
+        };
+    };
+    constexpr Vec(T x = {}, T y = {}, T z = {}) : x{x}, y{y}, z{z} {}
     constexpr T &operator[](const size_t i) {
         if (i >= 3)
             throw std::out_of_range("vector");
@@ -75,6 +88,18 @@ constexpr Vec<T, N> operator+(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
         res[i] = lhs[i] + rhs[i];
     }
     return res;
+}
+
+template<NumericType T, size_t N>
+constexpr bool operator==(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
+    for (size_t i = 0; i < N; ++i)
+        if (lhs[i] != rhs[i]) return false;
+    return true;
+}
+
+template<NumericType T, size_t N>
+constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
+    return !(lhs == rhs);
 }
 
 template<NumericType T, size_t N>

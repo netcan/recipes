@@ -6,11 +6,13 @@
     > Created Time: 2024-08-16 22:31
 ************************************************************************/
 #include <SDL_rect.h>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <utils/TimePerf.hpp>
 #include "CustomRendering.h"
 #include "imgui.h"
+#include "renderer/Geometry.hpp"
 
 void CustomRendering::drawPixel(Point p, const ImVec4& color) {
     if (p.x >= 0 && p.y >= 0 && p.x < surface_->w && p.y < surface_->h) {
@@ -69,23 +71,42 @@ void CustomRendering::wireFrameDraw()
     }
 }
 
+static constexpr Vec3f barycentric(Point a, Point b, Point c, Point p) {
+    // P = uA + vB + (1 - u - v)C;
+    //   = uCA + vCB + C
+    // uCA + vCB + PC = 0
+    // uCAx + vCBx + PCx = 0
+    // uCAy + vCBy + PCy = 0
+    // return { u, v, 1 - u - v }
+
+    auto ca = a - c, cb = b - c, pc = c - p;
+    auto n = cross(Vec{ca.x, cb.x, pc.x}, Vec{ca.y, cb.y, pc.y});
+    if (n.z == 0) {
+        return {1, 1, -1};
+    }
+    auto u = n.x * 1./n.z;
+    auto v = n.y * 1./n.z;
+    return {u, v, 1 - u - v};
+
+}
+
 void CustomRendering::triangle(Point a, Point b, Point c, const ImVec4& color)
 {
-    int lx = std::max(0, std::min({a.x, b.x, c.x}));
-    int ly = std::max(0, std::min({a.y, b.y, c.y}));
-    int rx = std::min(canvasSize_.x, std::max({a.x, b.x, c.x}));
-    int ry = std::min(canvasSize_.y, std::max({a.y, b.y, c.y}));
+    auto [minx, maxx] = std::minmax({a.x, b.x, c.x});
+    auto [miny, maxy] = std::minmax({a.y, b.y, c.y});
+    int lx = std::max(0, minx);
+    int ly = std::max(0, miny);
+    int rx = std::min(canvasSize_.x, maxx);
+    int ry = std::min(canvasSize_.y, maxy);
 
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
             Vec p {x, y};
-            auto ab = vec_cast<Vec3i>(b - a), bc = vec_cast<Vec3i>(c - b), ca = vec_cast<Vec3i>(a - c);
-            auto ap = vec_cast<Vec3i>(p - a), bp = vec_cast<Vec3i>(p - b), cp = vec_cast<Vec3i>(p - c);
-            auto c1 = cross(ab, ap).z, c2 = cross(bc, bp).z, c3 = cross(ca, cp).z;
-            // whether a point belongs to triangle
-            if (((c1 >= 0) && (c2 >= 0) && (c3 >= 0)) || ((c1 <= 0) && (c2 <= 0) && (c3 <= 0))) {
-                drawPixel(p, color);
+            auto bcCoord = barycentric(a, b, c, p);
+            if (bcCoord.u < 0 || bcCoord.v < 0 || bcCoord.w < 0) {
+                continue;
             }
+            drawPixel(p, color);
         }
     }
 }
