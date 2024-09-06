@@ -6,6 +6,9 @@
     > Created Time: 2024-09-06 22:51
 ************************************************************************/
 #include "Model.h"
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 Model::Model(const char *filename) {
     std::ifstream in;

@@ -4,3 +4,6 @@
 [submodule "cpp/third_party/SDL"]
 	path = cpp/third_party/SDL
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "cpp/third_party/stb"]
+	path = cpp/third_party/stb
+	url = https://github.com/nothings/stb.git

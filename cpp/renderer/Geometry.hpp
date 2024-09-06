@@ -69,6 +69,9 @@ template <NumericType T> struct Vec<T, 3> {
         struct {
             T u, v, w;
         };
+        struct {
+            T r, g, b;
+        };
     };
     constexpr Vec(T x = {}, T y = {}, T z = {}) : x{x}, y{y}, z{z} {}
     constexpr T &operator[](const size_t i) {
@@ -177,6 +180,7 @@ using Point2i = Vec<int, 2>;
 using Point3i = Vec<int, 3>;
 using Point2f = Vec<double, 2>;
 using Point3f = Vec<double, 3>;
+using Color = Vec<uint8_t, 3>;
 using Vec2i = Vec<int, 2>;
 using Vec3i = Vec<int, 3>;
 using Vec2f = Vec<double, 2>;

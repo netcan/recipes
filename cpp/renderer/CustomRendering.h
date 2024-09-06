@@ -14,14 +14,10 @@
 #include "Model.h"
 #pragma once
 
-constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, ImVec4 color) {
-    return SDL_MapRGBA(format, (Uint8)(color.x * 255), (Uint8)(color.y * 255), (Uint8)(color.z * 255),
-                       (Uint8)(color.w * 255));
-}
-
+using ZBuffer = std::vector<uint8_t>;
 struct Canvas {
     Canvas(int w, int h, SDL_Renderer *render)
-        : surface_(SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ARGB8888)),
+        : surface_(SDL_CreateRGBSurfaceWithFormat(0, w, h, 0, SDL_PIXELFORMAT_RGB888)),
           texture_(SDL_CreateTextureFromSurface(render, surface_.get())) {}
 
     void *refresh() {
@@ -34,9 +30,9 @@ struct Canvas {
         return  p.y * surface_->w + p.x;
     }
 
-    void drawPixel(Point2i p, const ImVec4 &color);
-    void triangle(Point3i a, Point3i b, Point3i c, std::vector<int>& zbuffer, const ImVec4& color);
-    void bresenhamLine(Point2i p0, Point2i p1, const ImVec4& color);
+    void drawPixel(Point2i p, const Color& color);
+    void triangle(Point3i a, Point3i b, Point3i c, ZBuffer& zbuffer, const Color& color);
+    void bresenhamLine(Point2i p0, Point2i p1, const Color& color);
 
 private:
     std::unique_ptr<SDL_Surface, utils::Delector<SDL_FreeSurface>> surface_;
@@ -65,7 +61,7 @@ private:
 
 private:
     void triangleDraw();
-    void dumpZbuffer(const std::vector<int>& zbuffer);
+    void dumpZbuffer(const ZBuffer& zbuffer);
 
 private:
     SDL_Renderer *render_ {};
@@ -77,8 +73,9 @@ private:
     Canvas canvas_ { width_, height_, render_ };
     Canvas zbufferCanvas_ { width_, height_, render_ };
 
-    ImVec4 color_ {1., 1., 1., 1.};
+    Color color_ {255, 255, 255};
     Model model_ {LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
+    Texture texture_ { LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};
     RenderType renderType_ {TriangleRasterization};
 };
 

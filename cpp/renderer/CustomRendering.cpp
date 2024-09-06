@@ -14,14 +14,18 @@
 #include "imgui.h"
 #include "renderer/Geometry.hpp"
 
-void Canvas::drawPixel(Point2i p, const ImVec4& color) {
+constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, Color color) {
+    return SDL_MapRGB(format, color.r, color.g, color.b);
+}
+
+void Canvas::drawPixel(Point2i p, const Color& color) {
     if (p.x >= 0 && p.y >= 0 && p.x < surface_->w && p.y < surface_->h) {
         auto pixels = reinterpret_cast<Uint32 *>(surface_->pixels);
         pixels[p.y * surface_->w + p.x] = toSDLColor(surface_->format, color);
     }
 }
 
-void Canvas::bresenhamLine(Point2i p0, Point2i p1, const ImVec4& color) {
+void Canvas::bresenhamLine(Point2i p0, Point2i p1, const Color& color) {
     auto dx = abs(p1.x - p0.x);
     auto dy = abs(p1.y - p0.y);
     auto slope = dy > dx;
@@ -91,7 +95,7 @@ static constexpr Point3f barycentric(Point2i a, Point2i b, Point2i c, Point2i p)
 }
 
 
-void Canvas::triangle(Point3i a, Point3i b, Point3i c, std::vector<int> &zbuffer, const ImVec4 &color) {
+void Canvas::triangle(Point3i a, Point3i b, Point3i c, ZBuffer& zbuffer, const Color& color) {
     auto [minx, maxx] = std::minmax({a.x, b.x, c.x});
     auto [miny, maxy] = std::minmax({a.y, b.y, c.y});
     int lx = std::max(0, minx);
@@ -117,7 +121,7 @@ void Canvas::triangle(Point3i a, Point3i b, Point3i c, std::vector<int> &zbuffer
 
 void CustomRendering::triangleDraw() {
     constexpr Vec light{0., 0., -1.};
-    std::vector<int> zbuffer((width_ + 1) * (height_ + 1), 0);
+    ZBuffer zbuffer((width_ + 1) * (height_ + 1), 0);
     for (const auto &face : model_.faces_) {
         Point3i screenCoords[3];
         Vec3f worldCoords[3];
@@ -129,19 +133,19 @@ void CustomRendering::triangleDraw() {
         auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
         if (auto intensity = light * n; intensity > 0) {
             canvas_.triangle(screenCoords[0], screenCoords[1], screenCoords[2], zbuffer,
-                             ImVec4(intensity * color_.x, intensity * color_.y, intensity * color_.z, 1));
+                             Color(intensity * color_.r, intensity * color_.g, intensity * color_.b));
         }
     }
     dumpZbuffer(zbuffer);
 }
 
-void CustomRendering::dumpZbuffer(const std::vector<int>& zbuffer) {
+void CustomRendering::dumpZbuffer(const ZBuffer& zbuffer) {
     if (ImGui::Begin(__FUNCTION__, NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         Point2i p;
         for (p.x = 0; p.x < width_; ++p.x) {
             for (p.y = 0; p.y < height_; ++p.y) {
-                auto z = zbuffer[zbufferCanvas_.point2Index(p)] / 255.f;
-                zbufferCanvas_.drawPixel(p, {z, z, z, 1.f});
+                auto z = zbuffer[zbufferCanvas_.point2Index(p)];
+                zbufferCanvas_.drawPixel(p, {z, z, z});
             }
         }
         ImGui::Image(zbufferCanvas_.refresh(), ImVec2(width_, height_), {0, 1}, {1, 0});
@@ -168,7 +172,11 @@ void CustomRendering::updateWindowSize()
 
 void CustomRendering::draw() {
     ImGui::Begin(__FUNCTION__);
-    ImGui::ColorEdit4("color", (float *)&color_);
+
+    static float color[3] {1, 1, 1};
+    ImGui::ColorEdit3("color", color);
+    color_ = Color(color[0] * 255, color[1] * 255, color[2] * 255);
+
     ImGui::Text("vertex: %zu vt: %zu normal: %zu faces: %zu", model_.verts_.size(), model_.uv_.size(),
                 model_.normal_.size(), model_.faces_.size());
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
