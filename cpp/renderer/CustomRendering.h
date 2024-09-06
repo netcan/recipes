@@ -26,6 +26,27 @@ constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, ImVec4 color) {
                        (Uint8)(color.w * 255));
 }
 
+struct Canvas {
+    Canvas(size_t w, size_t h, SDL_Renderer *render)
+        : w(w), h(h), surface_(SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ARGB8888)),
+          texture_(SDL_CreateTextureFromSurface(render, surface_.get())) {}
+
+    Uint32 *pixels() { return reinterpret_cast<Uint32 *>(surface_->pixels); }
+    const auto format() const { return surface_->format; }
+    void *refresh() {
+        SDL_UpdateTexture(texture_.get(), NULL, surface_->pixels, surface_->pitch);
+        SDL_FillRect(surface_.get(), NULL, 0x000000);
+        return texture_.get();
+    }
+
+    int w = 960;
+    int h = 720;
+
+private:
+    std::unique_ptr<SDL_Surface, Delector<SDL_FreeSurface>> surface_;
+    std::unique_ptr<SDL_Texture, Delector<SDL_DestroyTexture>> texture_;
+};
+
 struct CustomRendering {
     CustomRendering(SDL_Renderer *render) : render_(render) { }
     void draw();
@@ -43,19 +64,17 @@ private:
 private:
     void triangle(Point3i a, Point3i b, Point3i c, std::vector<int>& zbuffer, const ImVec4& color);
     void triangleDraw();
+    void dumpZbuffer(const std::vector<int>& zbuffer);
     constexpr size_t point2Index(Point2i p) {
-        return  p.y * canvasSize_.w + p.x;
+        return  p.y * canvas_.w + p.x;
     }
 
 private:
-    SDL_Renderer *render_;
-    Vec2i canvasSize_ {960, 720};
+    SDL_Renderer *render_ {};
     static constexpr size_t kDepth = 255;
-    std::unique_ptr<SDL_Surface, Delector<SDL_FreeSurface>> surface_{
-        SDL_CreateRGBSurfaceWithFormat(0, canvasSize_.w, canvasSize_.h, 32, SDL_PIXELFORMAT_ARGB8888)};
-    std::unique_ptr<SDL_Texture, Delector<SDL_DestroyTexture>> texture_ {
-        SDL_CreateTextureFromSurface(render_, surface_.get())
-    };
+
+    Canvas canvas_ { 960, 720, render_ };
+
     ImVec4 color_ {0.45f, 0.55f, 0.60f, 1.00f};
     Model model_ {"renderer/AfricanHead.obj"};
     RenderType renderType_ {TriangleRasterization};

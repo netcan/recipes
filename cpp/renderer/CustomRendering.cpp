@@ -9,17 +9,15 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <exception>
-#include <limits>
 #include <utils/TimePerf.hpp>
 #include "CustomRendering.h"
 #include "imgui.h"
 #include "renderer/Geometry.hpp"
 
 void CustomRendering::drawPixel(Point2i p, const ImVec4& color) {
-    if (p.x >= 0 && p.y >= 0 && p.x < surface_->w && p.y < surface_->h) {
-        auto pixels = reinterpret_cast<Uint32 *>(surface_->pixels);
-        pixels[p.y * surface_->w + p.x] = toSDLColor(surface_->format, color);
+    if (p.x >= 0 && p.y >= 0 && p.x < canvas_.w && p.y < canvas_.h) {
+        auto pixels = reinterpret_cast<Uint32 *>(canvas_.pixels());
+        pixels[p.y * canvas_.w + p.x] = toSDLColor(canvas_.format(), color);
     }
 }
 
@@ -64,10 +62,10 @@ void CustomRendering::wireFrameDraw()
         for (int j = 0; j < 3; j++) {
             auto v0 = vec_cast<Vec2f>(model_.verts_[face[j]]);
             auto v1 = vec_cast<Vec2f>(model_.verts_[face[(j + 1) % 3]]);
-            int x0 = (v0.x + 1.) * canvasSize_.w / 2.;
-            int y0 = (v0.y + 1.) * canvasSize_.h / 2.;
-            int x1 = (v1.x + 1.) * canvasSize_.w / 2.;
-            int y1 = (v1.y + 1.) * canvasSize_.h / 2.;
+            int x0 = (v0.x + 1.) * canvas_.w / 2.;
+            int y0 = (v0.y + 1.) * canvas_.h / 2.;
+            int x1 = (v1.x + 1.) * canvas_.w / 2.;
+            int y1 = (v1.y + 1.) * canvas_.h / 2.;
             bresenhamLine({x0, y0}, {x1, y1}, color_);
         }
     }
@@ -98,8 +96,8 @@ void CustomRendering::triangle(Point3i a, Point3i b, Point3i c, std::vector<int>
     auto [miny, maxy] = std::minmax({a.y, b.y, c.y});
     int lx = std::max(0, minx);
     int ly = std::max(0, miny);
-    int rx = std::min(canvasSize_.w, maxx);
-    int ry = std::min(canvasSize_.h, maxy);
+    int rx = std::min(canvas_.w, maxx);
+    int ry = std::min(canvas_.h, maxy);
 
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
@@ -122,14 +120,14 @@ void CustomRendering::triangleDraw() {
     utils::high_resolution_clock::duration duration;
     {
         utils::TimePerf perf{duration};
-        std::vector<int> zbuffer((canvasSize_.w + 1) * (canvasSize_.h + 1), 0);
+        std::vector<int> zbuffer((canvas_.w + 1) * (canvas_.h + 1), 0);
         for (const auto &face : model_.faces_) {
             Point3i screenCoords[3];
             Vec3f worldCoords[3];
             for (size_t i = 0; i < std::size(screenCoords); ++i) {
                 const auto &v = model_.verts_[face[i]];
                 screenCoords[i] =
-                    Vec3i((v.x + 1.) * canvasSize_.w / 2., (v.y + 1.) * canvasSize_.h / 2., (v.z + 1.) * kDepth / 2);
+                    Vec3i((v.x + 1.) * canvas_.w / 2., (v.y + 1.) * canvas_.h / 2., (v.z + 1.) * kDepth / 2);
                 worldCoords[i] = v;
             }
             auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
@@ -142,6 +140,11 @@ void CustomRendering::triangleDraw() {
     printf("triangle elapsed: %lld us per loop\n", std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
 }
 
+void CustomRendering::dumpZbuffer(const std::vector<int>& zbuffer) {
+    ImGui::Begin(__FUNCTION__);
+    ImGui::End();
+}
+
 static constexpr const char* RenderItems[] = {
     [CustomRendering::WireFrameDraw] = "wire frame draw",
     [CustomRendering::TriangleRasterization] = "triangle rasterization",
@@ -151,7 +154,6 @@ static constexpr const char* RenderItems[] = {
 void CustomRendering::draw() {
     ImGui::Begin(__FUNCTION__);
     ImGui::ColorEdit4("color", (float *)&color_);
-    ImGui::Text("surface: %p texture: %p", surface_.get(), texture_.get());
     ImGui::Text("vertex: %zu faces: %zu", model_.verts_.size(), model_.faces_.size());
     ImGui::Combo("renderType", (int*)&renderType_, RenderItems, std::size(RenderItems));
 
@@ -166,9 +168,7 @@ void CustomRendering::draw() {
         }
     }
 
-    SDL_UpdateTexture(texture_.get(), NULL, surface_->pixels, surface_->pitch);
-    SDL_FillRect(surface_.get(), NULL, 0x000000);
-    ImGui::Image(texture_.get(), vec_cast<ImVec2>(canvasSize_), {0, 1}, {1, 0});
+    ImGui::Image(canvas_.refresh(), ImVec2(canvas_.w, canvas_.h), {0, 1}, {1, 0});
 
     ImGui::End();
 }
