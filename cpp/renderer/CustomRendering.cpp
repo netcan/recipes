@@ -116,33 +116,27 @@ void Canvas::triangle(Point3i a, Point3i b, Point3i c, std::vector<int> &zbuffer
 }
 
 void CustomRendering::triangleDraw() {
-    Vec light { 0., 0., -1. };
-    utils::high_resolution_clock::duration duration;
-    {
-        utils::TimePerf perf{duration};
-        std::vector<int> zbuffer((width_ + 1) * (height_ + 1), 0);
-        for (const auto &face : model_.faces_) {
-            Point3i screenCoords[3];
-            Vec3f worldCoords[3];
-            for (size_t i = 0; i < std::size(screenCoords); ++i) {
-                const auto &v = model_.verts_[face[i]];
-                screenCoords[i] =
-                    Vec3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
-                worldCoords[i] = v;
-            }
-            auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
-            if (auto intensity = light * n; intensity > 0) {
-                canvas_.triangle(screenCoords[0], screenCoords[1], screenCoords[2], zbuffer,
-                        ImVec4(intensity * color_.x, intensity * color_.y, intensity * color_.z, 1));
-            }
+    Vec light{0., 0., -1.};
+    std::vector<int> zbuffer((width_ + 1) * (height_ + 1), 0);
+    for (const auto &face : model_.faces_) {
+        Point3i screenCoords[3];
+        Vec3f worldCoords[3];
+        for (size_t i = 0; i < std::size(screenCoords); ++i) {
+            const auto &v = model_.verts_[face[i]];
+            screenCoords[i] = Vec3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
+            worldCoords[i] = v;
         }
-        dumpZbuffer(zbuffer);
+        auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
+        if (auto intensity = light * n; intensity > 0) {
+            canvas_.triangle(screenCoords[0], screenCoords[1], screenCoords[2], zbuffer,
+                             ImVec4(intensity * color_.x, intensity * color_.y, intensity * color_.z, 1));
+        }
     }
-    printf("triangle elapsed: %lld us per loop\n", std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
+    dumpZbuffer(zbuffer);
 }
 
 void CustomRendering::dumpZbuffer(const std::vector<int>& zbuffer) {
-    if (ImGui::Begin(__FUNCTION__)) {
+    if (ImGui::Begin(__FUNCTION__, NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         Point2i p;
         for (p.x = 0; p.x < width_; ++p.x) {
             for (p.y = 0; p.y < height_; ++p.y) {
@@ -160,12 +154,24 @@ static constexpr const char* RenderItems[] = {
     [CustomRendering::TriangleRasterization] = "triangle rasterization",
 };
 
+void CustomRendering::updateWindowSize()
+{
+    auto availableSz = ImGui::GetContentRegionAvail();
+    if ((int)availableSz.x == width_ && (int)availableSz.y == height_) {
+        return;
+    }
+    width_ = availableSz.x;
+    height_ = availableSz.y;
+    canvas_ = {width_, height_, render_};
+    zbufferCanvas_ = {width_, height_, render_};
+}
 
 void CustomRendering::draw() {
     ImGui::Begin(__FUNCTION__);
     ImGui::ColorEdit4("color", (float *)&color_);
     ImGui::Text("vertex: %zu faces: %zu", model_.verts_.size(), model_.faces_.size());
     ImGui::Combo("renderType", (int*)&renderType_, RenderItems, std::size(RenderItems));
+    updateWindowSize();
 
     switch (renderType_) {
         case WireFrameDraw: {

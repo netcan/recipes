@@ -53,6 +53,7 @@ private:
 struct CustomRendering {
     CustomRendering(SDL_Renderer *render) : render_(render) { }
     void draw();
+    void updateWindowSize();
 
     enum RenderType: int {
         WireFrameDraw,
