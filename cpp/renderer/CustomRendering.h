@@ -8,18 +8,11 @@
 #include <SDL.h>
 #include <SDL_pixels.h>
 #include <memory>
+#include "utils/Delector.hpp"
 #include "Geometry.hpp"
 #include "imgui.h"
 #include "Model.h"
 #pragma once
-
-template<auto Fp>
-struct Delector {
-    template<typename ...Args>
-    constexpr auto operator()(Args&&... args) const noexcept {
-        return Fp(std::forward<Args>(args)...);
-    }
-};
 
 constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, ImVec4 color) {
     return SDL_MapRGBA(format, (Uint8)(color.x * 255), (Uint8)(color.y * 255), (Uint8)(color.z * 255),
@@ -46,8 +39,8 @@ struct Canvas {
     void bresenhamLine(Point2i p0, Point2i p1, const ImVec4& color);
 
 private:
-    std::unique_ptr<SDL_Surface, Delector<SDL_FreeSurface>> surface_;
-    std::unique_ptr<SDL_Texture, Delector<SDL_DestroyTexture>> texture_;
+    std::unique_ptr<SDL_Surface, utils::Delector<SDL_FreeSurface>> surface_;
+    std::unique_ptr<SDL_Texture, utils::Delector<SDL_DestroyTexture>> texture_;
 };
 
 inline const char* LoadEnv(const char* name, const char* defaultValue) {

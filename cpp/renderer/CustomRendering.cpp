@@ -116,7 +116,7 @@ void Canvas::triangle(Point3i a, Point3i b, Point3i c, std::vector<int> &zbuffer
 }
 
 void CustomRendering::triangleDraw() {
-    Vec light{0., 0., -1.};
+    constexpr Vec light{0., 0., -1.};
     std::vector<int> zbuffer((width_ + 1) * (height_ + 1), 0);
     for (const auto &face : model_.faces_) {
         Point3i screenCoords[3];
