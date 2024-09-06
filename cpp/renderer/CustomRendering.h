@@ -78,7 +78,7 @@ private:
     Canvas zbufferCanvas_ { width_, height_, render_ };
 
     ImVec4 color_ {1., 1., 1., 1.};
-    Model model_ {"renderer/AfricanHead.obj"};
+    Model model_ {"renderer/object/AfricanHead.obj"};
     RenderType renderType_ {TriangleRasterization};
 };
 

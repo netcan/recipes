@@ -14,4 +14,8 @@ target_include_directories(renderer
     PRIVATE ${CMAKE_SOURCE_DIR}/third_party/imgui/)
 target_link_libraries(renderer SDL2)
 
-configure_file(AfricanHead.obj ${CMAKE_CURRENT_BINARY_DIR}/AfricanHead.obj COPYONLY)
+add_custom_target(copy_object
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/object ${CMAKE_CURRENT_BINARY_DIR}/object
+)
+add_dependencies(renderer copy_object)
+
