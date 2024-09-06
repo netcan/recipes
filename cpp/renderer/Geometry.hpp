@@ -42,6 +42,9 @@ template <NumericType T> struct Vec<T, 2> {
         struct {
             T u, v;
         };
+        struct {
+            T w, h;
+        };
     };
     constexpr Vec(T x = {}, T y = {}) : x{x}, y{y} {}
     constexpr T &operator[](const size_t i) {
@@ -170,7 +173,10 @@ constexpr R vec_cast(const Vec<T, N> &v) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-using Point = Vec<int, 2>;
+using Point2i = Vec<int, 2>;
+using Point3i = Vec<int, 3>;
+using Point2f = Vec<double, 2>;
+using Point3f = Vec<double, 3>;
 using Vec2i = Vec<int, 2>;
 using Vec3i = Vec<int, 3>;
 using Vec2f = Vec<double, 2>;

@@ -9,19 +9,21 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
+#include <limits>
 #include <utils/TimePerf.hpp>
 #include "CustomRendering.h"
 #include "imgui.h"
 #include "renderer/Geometry.hpp"
 
-void CustomRendering::drawPixel(Point p, const ImVec4& color) {
+void CustomRendering::drawPixel(Point2i p, const ImVec4& color) {
     if (p.x >= 0 && p.y >= 0 && p.x < surface_->w && p.y < surface_->h) {
         auto pixels = reinterpret_cast<Uint32 *>(surface_->pixels);
         pixels[p.y * surface_->w + p.x] = toSDLColor(surface_->format, color);
     }
 }
 
-void CustomRendering::bresenhamLine(Point p0, Point p1, const ImVec4& color) {
+void CustomRendering::bresenhamLine(Point2i p0, Point2i p1, const ImVec4& color) {
     auto dx = abs(p1.x - p0.x);
     auto dy = abs(p1.y - p0.y);
     auto slope = dy > dx;
@@ -62,16 +64,16 @@ void CustomRendering::wireFrameDraw()
         for (int j = 0; j < 3; j++) {
             auto v0 = vec_cast<Vec2f>(model_.verts_[face[j]]);
             auto v1 = vec_cast<Vec2f>(model_.verts_[face[(j + 1) % 3]]);
-            int x0 = (v0.x + 1.) * canvasSize_.x / 2.;
-            int y0 = (v0.y + 1.) * canvasSize_.y / 2.;
-            int x1 = (v1.x + 1.) * canvasSize_.x / 2.;
-            int y1 = (v1.y + 1.) * canvasSize_.y / 2.;
+            int x0 = (v0.x + 1.) * canvasSize_.w / 2.;
+            int y0 = (v0.y + 1.) * canvasSize_.h / 2.;
+            int x1 = (v1.x + 1.) * canvasSize_.w / 2.;
+            int y1 = (v1.y + 1.) * canvasSize_.h / 2.;
             bresenhamLine({x0, y0}, {x1, y1}, color_);
         }
     }
 }
 
-static constexpr Vec3f barycentric(Point a, Point b, Point c, Point p) {
+static constexpr Point3f barycentric(Point2i a, Point2i b, Point2i c, Point2i p) {
     // P = uA + vB + (1 - u - v)C;
     //   = uCA + vCB + C
     // uCA + vCB + PC = 0
@@ -90,23 +92,27 @@ static constexpr Vec3f barycentric(Point a, Point b, Point c, Point p) {
 
 }
 
-void CustomRendering::triangle(Point a, Point b, Point c, const ImVec4& color)
-{
+
+void CustomRendering::triangle(Point3i a, Point3i b, Point3i c, std::vector<int> &zbuffer, const ImVec4 &color) {
     auto [minx, maxx] = std::minmax({a.x, b.x, c.x});
     auto [miny, maxy] = std::minmax({a.y, b.y, c.y});
     int lx = std::max(0, minx);
     int ly = std::max(0, miny);
-    int rx = std::min(canvasSize_.x, maxx);
-    int ry = std::min(canvasSize_.y, maxy);
+    int rx = std::min(canvasSize_.w, maxx);
+    int ry = std::min(canvasSize_.h, maxy);
 
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
             Vec p {x, y};
-            auto bcCoord = barycentric(a, b, c, p);
+            auto bcCoord = barycentric(vec_cast<Point2i>(a), vec_cast<Point2i>(b), vec_cast<Point2i>(c), p);
             if (bcCoord.u < 0 || bcCoord.v < 0 || bcCoord.w < 0) {
                 continue;
             }
-            drawPixel(p, color);
+            int z = bcCoord.u * a.z + bcCoord.v * b.z + bcCoord.w * c.z;
+            if (z > zbuffer[point2Index(p)]) {
+                zbuffer[point2Index(p)] = z;
+                drawPixel(p, color);
+            }
         }
     }
 }
@@ -116,17 +122,19 @@ void CustomRendering::triangleDraw() {
     utils::high_resolution_clock::duration duration;
     {
         utils::TimePerf perf{duration};
+        std::vector<int> zbuffer((canvasSize_.w + 1) * (canvasSize_.h + 1), 0);
         for (const auto &face : model_.faces_) {
-            Vec2i screenCoords[3];
+            Point3i screenCoords[3];
             Vec3f worldCoords[3];
             for (size_t i = 0; i < std::size(screenCoords); ++i) {
                 const auto &v = model_.verts_[face[i]];
-                screenCoords[i] = Vec2i((v.x + 1.) * canvasSize_.x / 2., (v.y + 1.) * canvasSize_.y / 2.);
+                screenCoords[i] =
+                    Vec3i((v.x + 1.) * canvasSize_.w / 2., (v.y + 1.) * canvasSize_.h / 2., (v.z + 1.) * kDepth / 2);
                 worldCoords[i] = v;
             }
             auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
             if (auto intensity = light * n; intensity > 0) {
-                triangle(screenCoords[0], screenCoords[1], screenCoords[2],
+                triangle(screenCoords[0], screenCoords[1], screenCoords[2], zbuffer,
                         ImVec4(intensity * color_.x, intensity * color_.y, intensity * color_.z, 1));
             }
         }
