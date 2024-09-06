@@ -14,14 +14,14 @@
 #include "imgui.h"
 #include "renderer/Geometry.hpp"
 
-void CustomRendering::drawPixel(Point2i p, const ImVec4& color) {
-    if (p.x >= 0 && p.y >= 0 && p.x < canvas_.w && p.y < canvas_.h) {
-        auto pixels = reinterpret_cast<Uint32 *>(canvas_.pixels());
-        pixels[p.y * canvas_.w + p.x] = toSDLColor(canvas_.format(), color);
+void Canvas::drawPixel(Point2i p, const ImVec4& color) {
+    if (p.x >= 0 && p.y >= 0 && p.x < surface_->w && p.y < surface_->h) {
+        auto pixels = reinterpret_cast<Uint32 *>(surface_->pixels);
+        pixels[p.y * surface_->w + p.x] = toSDLColor(surface_->format, color);
     }
 }
 
-void CustomRendering::bresenhamLine(Point2i p0, Point2i p1, const ImVec4& color) {
+void Canvas::bresenhamLine(Point2i p0, Point2i p1, const ImVec4& color) {
     auto dx = abs(p1.x - p0.x);
     auto dy = abs(p1.y - p0.y);
     auto slope = dy > dx;
@@ -62,11 +62,11 @@ void CustomRendering::wireFrameDraw()
         for (int j = 0; j < 3; j++) {
             auto v0 = vec_cast<Vec2f>(model_.verts_[face[j]]);
             auto v1 = vec_cast<Vec2f>(model_.verts_[face[(j + 1) % 3]]);
-            int x0 = (v0.x + 1.) * canvas_.w / 2.;
-            int y0 = (v0.y + 1.) * canvas_.h / 2.;
-            int x1 = (v1.x + 1.) * canvas_.w / 2.;
-            int y1 = (v1.y + 1.) * canvas_.h / 2.;
-            bresenhamLine({x0, y0}, {x1, y1}, color_);
+            int x0 = (v0.x + 1.) * width_ / 2.;
+            int y0 = (v0.y + 1.) * height_ / 2.;
+            int x1 = (v1.x + 1.) * width_ / 2.;
+            int y1 = (v1.y + 1.) * height_ / 2.;
+            canvas_.bresenhamLine({x0, y0}, {x1, y1}, color_);
         }
     }
 }
@@ -91,13 +91,13 @@ static constexpr Point3f barycentric(Point2i a, Point2i b, Point2i c, Point2i p)
 }
 
 
-void CustomRendering::triangle(Point3i a, Point3i b, Point3i c, std::vector<int> &zbuffer, const ImVec4 &color) {
+void Canvas::triangle(Point3i a, Point3i b, Point3i c, std::vector<int> &zbuffer, const ImVec4 &color) {
     auto [minx, maxx] = std::minmax({a.x, b.x, c.x});
     auto [miny, maxy] = std::minmax({a.y, b.y, c.y});
     int lx = std::max(0, minx);
     int ly = std::max(0, miny);
-    int rx = std::min(canvas_.w, maxx);
-    int ry = std::min(canvas_.h, maxy);
+    int rx = std::min(surface_->w, maxx);
+    int ry = std::min(surface_->h, maxy);
 
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
@@ -120,28 +120,38 @@ void CustomRendering::triangleDraw() {
     utils::high_resolution_clock::duration duration;
     {
         utils::TimePerf perf{duration};
-        std::vector<int> zbuffer((canvas_.w + 1) * (canvas_.h + 1), 0);
+        std::vector<int> zbuffer((width_ + 1) * (height_ + 1), 0);
         for (const auto &face : model_.faces_) {
             Point3i screenCoords[3];
             Vec3f worldCoords[3];
             for (size_t i = 0; i < std::size(screenCoords); ++i) {
                 const auto &v = model_.verts_[face[i]];
                 screenCoords[i] =
-                    Vec3i((v.x + 1.) * canvas_.w / 2., (v.y + 1.) * canvas_.h / 2., (v.z + 1.) * kDepth / 2);
+                    Vec3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
                 worldCoords[i] = v;
             }
             auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
             if (auto intensity = light * n; intensity > 0) {
-                triangle(screenCoords[0], screenCoords[1], screenCoords[2], zbuffer,
+                canvas_.triangle(screenCoords[0], screenCoords[1], screenCoords[2], zbuffer,
                         ImVec4(intensity * color_.x, intensity * color_.y, intensity * color_.z, 1));
             }
         }
+        dumpZbuffer(zbuffer);
     }
     printf("triangle elapsed: %lld us per loop\n", std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
 }
 
 void CustomRendering::dumpZbuffer(const std::vector<int>& zbuffer) {
-    ImGui::Begin(__FUNCTION__);
+    if (ImGui::Begin(__FUNCTION__)) {
+        Point2i p;
+        for (p.x = 0; p.x < width_; ++p.x) {
+            for (p.y = 0; p.y < height_; ++p.y) {
+                auto z = zbuffer[zbufferCanvas_.point2Index(p)] / 255.f;
+                zbufferCanvas_.drawPixel(p, {z, z, z, 1.f});
+            }
+        }
+        ImGui::Image(zbufferCanvas_.refresh(), ImVec2(width_, height_), {0, 1}, {1, 0});
+    }
     ImGui::End();
 }
 
@@ -168,7 +178,7 @@ void CustomRendering::draw() {
         }
     }
 
-    ImGui::Image(canvas_.refresh(), ImVec2(canvas_.w, canvas_.h), {0, 1}, {1, 0});
+    ImGui::Image(canvas_.refresh(), ImVec2(width_, height_), {0, 1}, {1, 0});
 
     ImGui::End();
 }

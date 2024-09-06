@@ -27,20 +27,23 @@ constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, ImVec4 color) {
 }
 
 struct Canvas {
-    Canvas(size_t w, size_t h, SDL_Renderer *render)
-        : w(w), h(h), surface_(SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ARGB8888)),
+    Canvas(int w, int h, SDL_Renderer *render)
+        : surface_(SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ARGB8888)),
           texture_(SDL_CreateTextureFromSurface(render, surface_.get())) {}
 
-    Uint32 *pixels() { return reinterpret_cast<Uint32 *>(surface_->pixels); }
-    const auto format() const { return surface_->format; }
     void *refresh() {
         SDL_UpdateTexture(texture_.get(), NULL, surface_->pixels, surface_->pitch);
         SDL_FillRect(surface_.get(), NULL, 0x000000);
         return texture_.get();
     }
 
-    int w = 960;
-    int h = 720;
+    constexpr size_t point2Index(Point2i p) {
+        return  p.y * surface_->w + p.x;
+    }
+
+    void drawPixel(Point2i p, const ImVec4 &color);
+    void triangle(Point3i a, Point3i b, Point3i c, std::vector<int>& zbuffer, const ImVec4& color);
+    void bresenhamLine(Point2i p0, Point2i p1, const ImVec4& color);
 
 private:
     std::unique_ptr<SDL_Surface, Delector<SDL_FreeSurface>> surface_;
@@ -57,25 +60,23 @@ struct CustomRendering {
     };
 
 private:
-    void bresenhamLine(Point2i p0, Point2i p1, const ImVec4& color);
-    void drawPixel(Point2i p, const ImVec4& color);
     void wireFrameDraw();
 
 private:
-    void triangle(Point3i a, Point3i b, Point3i c, std::vector<int>& zbuffer, const ImVec4& color);
     void triangleDraw();
     void dumpZbuffer(const std::vector<int>& zbuffer);
-    constexpr size_t point2Index(Point2i p) {
-        return  p.y * canvas_.w + p.x;
-    }
 
 private:
     SDL_Renderer *render_ {};
     static constexpr size_t kDepth = 255;
 
-    Canvas canvas_ { 960, 720, render_ };
+    int width_ = 960;
+    int height_ = 720;
 
-    ImVec4 color_ {0.45f, 0.55f, 0.60f, 1.00f};
+    Canvas canvas_ { width_, height_, render_ };
+    Canvas zbufferCanvas_ { width_, height_, render_ };
+
+    ImVec4 color_ {1., 1., 1., 1.};
     Model model_ {"renderer/AfricanHead.obj"};
     RenderType renderType_ {TriangleRasterization};
 };
