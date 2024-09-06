@@ -60,8 +60,8 @@ void CustomRendering::wireFrameDraw()
 {
     for (const auto& face: model_.faces_) {
         for (int j = 0; j < 3; j++) {
-            auto v0 = vec_cast<Vec2f>(model_.verts_[face[j]]);
-            auto v1 = vec_cast<Vec2f>(model_.verts_[face[(j + 1) % 3]]);
+            auto v0 = vec_cast<Vec2f>(model_.verts_[face[j].vIndex]);
+            auto v1 = vec_cast<Vec2f>(model_.verts_[face[(j + 1) % 3].vIndex]);
             int x0 = (v0.x + 1.) * width_ / 2.;
             int y0 = (v0.y + 1.) * height_ / 2.;
             int x1 = (v1.x + 1.) * width_ / 2.;
@@ -122,7 +122,7 @@ void CustomRendering::triangleDraw() {
         Point3i screenCoords[3];
         Vec3f worldCoords[3];
         for (size_t i = 0; i < std::size(screenCoords); ++i) {
-            const auto &v = model_.verts_[face[i]];
+            const auto &v = model_.verts_[face[i].vIndex];
             screenCoords[i] = Vec3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
             worldCoords[i] = v;
         }
@@ -169,8 +169,9 @@ void CustomRendering::updateWindowSize()
 void CustomRendering::draw() {
     ImGui::Begin(__FUNCTION__);
     ImGui::ColorEdit4("color", (float *)&color_);
-    ImGui::Text("vertex: %zu faces: %zu", model_.verts_.size(), model_.faces_.size());
-    ImGui::Combo("renderType", (int*)&renderType_, RenderItems, std::size(RenderItems));
+    ImGui::Text("vertex: %zu vt: %zu normal: %zu faces: %zu", model_.verts_.size(), model_.uv_.size(),
+                model_.normal_.size(), model_.faces_.size());
+    ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     updateWindowSize();
 
     switch (renderType_) {

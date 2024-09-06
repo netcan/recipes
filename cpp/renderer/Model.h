@@ -15,33 +15,15 @@
 #include "renderer/Geometry.hpp"
 
 struct Model {
-	Model(const char *filename) {
-        std::ifstream in;
-        in.open(filename, std::ifstream::in);
-        if (in.fail())
-            return;
-        std::string line;
-        while (!in.eof()) {
-            std::getline(in, line);
-            std::istringstream iss(line.c_str());
-            char trash;
-            if (!line.compare(0, 2, "v ")) {
-                iss >> trash;
-                Vec3f v{};
-                iss >> v.x >> v.y >> v.z;
-                verts_.push_back(v);
-            } else if (!line.compare(0, 2, "f ")) {
-                std::vector<int> f;
-                int itrash, idx;
-                iss >> trash;
-                while (iss >> idx >> trash >> itrash >> trash >> itrash) {
-                    f.push_back(idx - 1);
-                }
-                faces_.push_back(f);
-            }
-        }
-    }
+    struct FaceIndex {
+        size_t vIndex {};
+        size_t uvIndex {};
+        size_t nIndex {};
+    };
+	Model(const char *filename);
 
 	std::vector<Vec3f> verts_;
-	std::vector<std::vector<int> > faces_;
+	std::vector<Vec2f> uv_;
+	std::vector<Vec3f> normal_;
+	std::vector<std::vector<FaceIndex> > faces_;
 };

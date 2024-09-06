@@ -50,6 +50,13 @@ private:
     std::unique_ptr<SDL_Texture, Delector<SDL_DestroyTexture>> texture_;
 };
 
+inline const char* LoadEnv(const char* name, const char* defaultValue) {
+    if (auto v = std::getenv(name)) {
+        return v;
+    }
+    return defaultValue;
+}
+
 struct CustomRendering {
     CustomRendering(SDL_Renderer *render) : render_(render) { }
     void draw();
@@ -78,7 +85,7 @@ private:
     Canvas zbufferCanvas_ { width_, height_, render_ };
 
     ImVec4 color_ {1., 1., 1., 1.};
-    Model model_ {"renderer/object/AfricanHead.obj"};
+    Model model_ {LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
     RenderType renderType_ {TriangleRasterization};
 };
 

@@ -1,6 +1,7 @@
 add_executable(renderer
     main.cpp
     CustomRendering.cpp
+    Model.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
     ${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
