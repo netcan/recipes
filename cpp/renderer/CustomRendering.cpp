@@ -164,6 +164,9 @@ void CustomRendering::updateWindowSize()
     if ((int)availableSz.x == width_ && (int)availableSz.y == height_) {
         return;
     }
+    if (availableSz.x < 0 || availableSz.y < 0) {
+        return;
+    }
     width_ = availableSz.x;
     height_ = availableSz.y;
     canvas_ = {width_, height_, render_};
@@ -171,7 +174,10 @@ void CustomRendering::updateWindowSize()
 }
 
 void CustomRendering::draw() {
-    ImGui::Begin(__FUNCTION__);
+    if (!ImGui::Begin(__FUNCTION__)) {
+        ImGui::End();
+        return;
+    }
 
     static float color[3] {1, 1, 1};
     ImGui::ColorEdit3("color", color);
