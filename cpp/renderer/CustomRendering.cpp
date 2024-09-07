@@ -13,6 +13,7 @@
 #include "CustomRendering.h"
 #include "imgui.h"
 #include "renderer/Geometry.hpp"
+#include "renderer/Shader.h"
 
 constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, Color color) {
     return SDL_MapRGB(format, color.r, color.g, color.b);
@@ -62,15 +63,15 @@ void Canvas::bresenhamLine(Point2i p0, Point2i p1, const Color& color) {
 
 void CustomRendering::wireFrameDraw()
 {
-    for (const auto& face: model_.faces_) {
-        for (int j = 0; j < 3; j++) {
-            auto v0 = vec_cast<Vec2f>(model_.verts_[face[j].vIndex]);
-            auto v1 = vec_cast<Vec2f>(model_.verts_[face[(j + 1) % 3].vIndex]);
-            int x0 = (v0.x + 1.) * width_ / 2.;
-            int y0 = (v0.y + 1.) * height_ / 2.;
-            int x1 = (v1.x + 1.) * width_ / 2.;
-            int y1 = (v1.y + 1.) * height_ / 2.;
-            canvas_.bresenhamLine({x0, y0}, {x1, y1}, color_);
+    for (const auto& face: shader_.faces()) {
+        std::array<Point3i, 3> screenCoords;
+        for (size_t i = 0; i < std::size(screenCoords); ++i) {
+            screenCoords[i] = shader_.vertex(face[i]);
+        }
+        for (int i = 0; i < 3; i++) {
+            auto v0 = vec_cast<Point2i>(screenCoords[i]);
+            auto v1 = vec_cast<Point2i>(screenCoords[(i + 1) % 3]);
+            canvas_.bresenhamLine(v0, v1, color_);
         }
     }
 }
@@ -94,8 +95,7 @@ static constexpr Point3f barycentric(Point2i a, Point2i b, Point2i c, Point2i p)
 
 }
 
-void Canvas::triangle(const std::array<Point3i, 3> &vertex, const std::array<Point2i, 3> &uv, const Texture &texture,
-                      ZBuffer &zbuffer, double intensity) {
+void Canvas::triangle(const std::array<Point3i, 3> &vertex, const Shader &shader, ZBuffer &zbuffer) {
     const auto &[va, vb, vc] = vertex;
     auto [minx, maxx] = std::minmax({va.x, vb.x, vc.x});
     auto [miny, maxy] = std::minmax({va.y, vb.y, vc.y});
@@ -108,41 +108,29 @@ void Canvas::triangle(const std::array<Point3i, 3> &vertex, const std::array<Poi
         for (int y = ly; y <= ry; ++y) {
             Vec p {x, y};
             auto bcCoord = barycentric(vec_cast<Point2i>(va), vec_cast<Point2i>(vb), vec_cast<Point2i>(vc), p);
-            if (bcCoord.u < 0 || bcCoord.v < 0 || bcCoord.w < 0) {
+            int z = bcCoord.u * va.z + bcCoord.v * vb.z + bcCoord.w * vc.z;
+            if (bcCoord.u < 0 || bcCoord.v < 0 || bcCoord.w < 0 || z <= zbuffer[point2Index(p)]) {
                 continue;
             }
-            int z = bcCoord.u * va.z + bcCoord.v * vb.z + bcCoord.w * vc.z;
-            if (z > zbuffer[point2Index(p)]) {
-                const auto &[uva, uvb, uvc] = uv;
-                Vec uvP{bcCoord.u * uva.x + bcCoord.v * uvb.x + bcCoord.w * uvc.x,
-                        bcCoord.u * uva.y + bcCoord.v * uvb.y + bcCoord.w * uvc.y};
-                zbuffer[point2Index(p)] = z;
-                drawPixel(p, vec_cast<Color>(texture.get(vec_cast<Point2i>(uvP)) * intensity));
-            }
+            Color c;
+            if (shader.fragment(bcCoord, c))
+                continue;
+            zbuffer[point2Index(p)] = z;
+            drawPixel(p, c);
         }
     }
 }
 
 void CustomRendering::triangleDraw() {
-    constexpr Vec light{0., 0., -1.};
     ZBuffer zbuffer((width_ + 1) * (height_ + 1), 0);
-    for (const auto &face : model_.faces_) {
+    for (auto& face: shader_.faces()) {
         std::array<Point3i, 3> screenCoords;
-        std::array<Point2i, 3> uvCoords;
-        std::array<Vec3f, 3> worldCoords;
-
         for (size_t i = 0; i < std::size(screenCoords); ++i) {
-            const auto &v = model_.verts_[face[i].vIndex];
-            screenCoords[i] = Vec3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
-            auto uv = model_.uv_[face[i].uvIndex];
-            uvCoords[i] = Vec2i(uv.x * texture_.width_, uv.y * texture_.height_);
-            worldCoords[i] = v;
+            screenCoords[i] = shader_.vertex(face[i]);
         }
-        auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
-        if (auto intensity = light * n; intensity > 0) {
-            canvas_.triangle(screenCoords, uvCoords, texture_, zbuffer, intensity);
-        }
+        canvas_.triangle(screenCoords, shader_, zbuffer);
     }
+
     dumpZbuffer(zbuffer);
 }
 
@@ -189,9 +177,7 @@ void CustomRendering::draw() {
     static Vec color {1.f, 1.f, 1.f};
     ImGui::ColorEdit3("color", color.data);
     color_ = vec_cast<Color>(color * 255);
-
-    ImGui::Text("vertex: %zu vt: %zu normal: %zu faces: %zu", model_.verts_.size(), model_.uv_.size(),
-                model_.normal_.size(), model_.faces_.size());
+    shader_.dumpInfo();
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     updateWindowSize();
 

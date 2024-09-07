@@ -15,6 +15,7 @@
 
 struct Model {
     struct FaceIndex {
+        size_t nth{};
         size_t vIndex{};
         size_t uvIndex{};
         size_t nIndex{};

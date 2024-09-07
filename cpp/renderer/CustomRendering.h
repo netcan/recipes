@@ -8,9 +8,9 @@
 #include <SDL.h>
 #include <SDL_pixels.h>
 #include <memory>
+#include "renderer/Shader.h"
 #include "utils/Delector.hpp"
 #include "Geometry.hpp"
-#include "imgui.h"
 #include "Model.h"
 #pragma once
 
@@ -31,21 +31,13 @@ struct Canvas {
     }
 
     void drawPixel(Point2i p, const Color& color);
-    void triangle(const std::array<Point3i, 3> &vertex, const std::array<Point2i, 3> &uv, const Texture &texture,
-                  ZBuffer &zbuffer, double intensity);
+    void triangle(const std::array<Point3i, 3> &vertex, const Shader &shader, ZBuffer &zbuffer);
     void bresenhamLine(Point2i p0, Point2i p1, const Color &color);
 
 private:
     std::unique_ptr<SDL_Surface, utils::Delector<SDL_FreeSurface>> surface_;
     std::unique_ptr<SDL_Texture, utils::Delector<SDL_DestroyTexture>> texture_;
 };
-
-inline const char* LoadEnv(const char* name, const char* defaultValue) {
-    if (auto v = std::getenv(name)) {
-        return v;
-    }
-    return defaultValue;
-}
 
 struct CustomRendering {
     CustomRendering(SDL_Renderer *render) : render_(render) { }
@@ -66,7 +58,6 @@ private:
 
 private:
     SDL_Renderer *render_ {};
-    static constexpr size_t kDepth = 255;
 
     int width_ = 960;
     int height_ = 720;
@@ -74,9 +65,8 @@ private:
     Canvas canvas_ { width_, height_, render_ };
     Canvas zbufferCanvas_ { width_, height_, render_ };
 
+    Shader shader_ {width_, height_};
     Color color_ {255, 255, 255};
-    Model model_ {LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
-    Texture texture_ { LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};
     RenderType renderType_ {TriangleRasterization};
 };
 

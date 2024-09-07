@@ -6,6 +6,7 @@
     > Created Time: 2024-09-06 22:51
 ************************************************************************/
 #include "Model.h"
+#include <cassert>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -39,9 +40,11 @@ Model::Model(const char *filename) {
             std::vector<FaceIndex> f;
             FaceIndex index;
             iss >> trash;
+            size_t nth = 0;
             while (iss >> index.vIndex >> trash >> index.uvIndex >> trash >> index.nIndex) {
-                f.push_back({index.vIndex - 1, index.uvIndex - 1, index.nIndex - 1});
+                f.push_back({nth++, index.vIndex - 1, index.uvIndex - 1, index.nIndex - 1});
             }
+            assert(nth == 3);
             faces_.push_back(f);
         }
     }
