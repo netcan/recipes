@@ -61,11 +61,12 @@ private:
 
     int width_ = 960;
     int height_ = 720;
+    Vec3f light_ {0., 0., -1.};
 
     Canvas canvas_ { width_, height_, render_ };
     Canvas zbufferCanvas_ { width_, height_, render_ };
 
-    Shader shader_ {width_, height_};
+    Shader shader_ {width_, height_, light_};
     Color color_ {255, 255, 255};
     RenderType renderType_ {TriangleRasterization};
 };

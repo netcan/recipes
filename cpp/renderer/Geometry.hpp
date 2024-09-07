@@ -203,13 +203,13 @@ constexpr R vec_cast(const Vec<T, N> &v) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 using Point2i = Vec<int, 2>;
 using Point3i = Vec<int, 3>;
-using Point2f = Vec<double, 2>;
-using Point3f = Vec<double, 3>;
+using Point2f = Vec<float, 2>;
+using Point3f = Vec<float, 3>;
 using Color = Vec<uint8_t, 3>;
 using Vec2i = Vec<int, 2>;
 using Vec3i = Vec<int, 3>;
-using Vec2f = Vec<double, 2>;
-using Vec3f = Vec<double, 3>;
+using Vec2f = Vec<float, 2>;
+using Vec3f = Vec<float, 3>;
 
 template <NumericType T, typename... Args>
 requires(std::same_as<T, Args> && ...)

@@ -89,9 +89,9 @@ static constexpr Point3f barycentric(Point2i a, Point2i b, Point2i c, Point2i p)
     if (n.z == 0) {
         return {1, 1, -1};
     }
-    auto u = n.x * 1./n.z;
-    auto v = n.y * 1./n.z;
-    return {u, v, 1 - u - v};
+    auto u = n.x * 1.f/n.z;
+    auto v = n.y * 1.f/n.z;
+    return {u, v, 1.f - u - v};
 
 }
 
@@ -179,7 +179,9 @@ void CustomRendering::draw() {
     color_ = vec_cast<Color>(color * 255);
     shader_.dumpInfo();
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
+    ImGui::DragFloat3("light", light_.data, 0, -1, 1);
     updateWindowSize();
+
 
     switch (renderType_) {
         case WireFrameDraw: {

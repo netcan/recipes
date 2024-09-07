@@ -10,7 +10,6 @@
 #include "Model.h"
 #include "renderer/Geometry.hpp"
 constexpr size_t kDepth = 255;
-constexpr auto light = -Vec {0., 0., -1.};
 
 inline const char* LoadEnv(const char* name, const char* defaultValue) {
     if (auto v = std::getenv(name)) {
@@ -20,8 +19,8 @@ inline const char* LoadEnv(const char* name, const char* defaultValue) {
 }
 
 struct Shader {
-    Shader(int &width, int &height) : width_(width), height_(height) {}
-    const auto &faces() const { return model_.faces_; }
+    Shader(int& width, int& height, Vec3f& light) : width_(width), height_(height), light_(light) {}
+    const auto& faces() const { return model_.faces_; }
 
     Point3i vertex(const Model::FaceIndex& index) {
         const auto& v      = model_.verts_[index.vIndex];
@@ -29,7 +28,7 @@ struct Shader {
         const auto& normal = model_.normal_[index.nIndex];
 
         varyingUv_[index.nth] = Point2i(uv.x * texture_.width_, uv.y * texture_.height_);
-        varyingIntensity_[index.nth] = std::clamp(light * normal, 0., 1.);
+        varyingIntensity_[index.nth] = std::clamp(-light_ * normal, 0.f, 1.f);
 
         return Vec3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
     }
@@ -51,9 +50,10 @@ struct Shader {
     }
 
 private:
-    const int&    width_;
-    const int&    height_;
-    const Model   model_{LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
+    const int&           width_;
+    const int&           height_;
+    const Vec3f&         light_;
+    const Model          model_{LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
     const Texture texture_{LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};
 
     std::array<Point2i, 3> varyingUv_;
