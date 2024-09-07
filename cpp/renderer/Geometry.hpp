@@ -91,7 +91,7 @@ template <NumericType T> struct Vec<T, 3> {
 template<NumericType T, NumericType R, size_t N>
 constexpr auto operator+(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     Vec<decltype(T{} + R{}), N> res;
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
         res[i] = lhs[i] + rhs[i];
     }
     return res;
@@ -112,8 +112,17 @@ constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
 template<NumericType T, NumericType R, size_t N>
 constexpr auto operator-(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     Vec<decltype(T{} - R{}), N> res;
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
         res[i] = lhs[i] - rhs[i];
+    }
+    return res;
+}
+
+template<NumericType T,  size_t N>
+constexpr auto operator-(const Vec<T, N>& lhs) {
+    Vec<T, N> res;
+    for (size_t i = 0; i < N; ++i) {
+        res[i] = -lhs[i];
     }
     return res;
 }
@@ -121,7 +130,7 @@ constexpr auto operator-(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
 template<NumericType T, NumericType R, size_t N>
 constexpr auto operator*(const Vec<T, N>& lhs, R c) {
     Vec<decltype(T{} * R{}), N> res;
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
         res[i] = lhs[i] * c;
     }
     return res;
@@ -135,7 +144,7 @@ constexpr auto operator*(R c, const Vec<T, N>& rhs) {
 template<NumericType T, NumericType R, size_t N>
 constexpr auto operator*(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     decltype(T{} * R{}) res {};
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
         res += lhs[i] * rhs[i];
     }
     return res;

@@ -30,7 +30,7 @@ Model::Model(const char *filename) {
             iss >> trash >> trash;
             Vec3f v{};
             iss >> v.x >> v.y >> v.z;
-            normal_.push_back(v);
+            normal_.push_back(normalize(v));
         } else if (line.starts_with("vt ")) {
             iss >> trash >> trash;
             Vec2f v{};
