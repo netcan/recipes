@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <iterator>
 #include <utils/TimePerf.hpp>
 #include "CustomRendering.h"
 #include "imgui.h"
@@ -132,6 +133,14 @@ void CustomRendering::triangleDraw() {
     }
 
     dumpZbuffer(zbuffer);
+    dumpLight();
+}
+
+void CustomRendering::dumpLight() {
+    // auto light = light_ * 10;
+    auto o     = Vec3f((0 + 1.) * width_ / 2., (0 + 1.) * height_ / 2., (0 + 1.) * kDepth / 2);
+    auto light = Vec3f((light_.x + 1.) * width_ / 2., (light_.y + 1.) * height_ / 2., (light_.z + 1.) * kDepth / 2);
+    canvas_.bresenhamLine(vec_cast<Point2i>(o), vec_cast<Point2i>(light), color_);
 }
 
 void CustomRendering::dumpZbuffer(const ZBuffer& zbuffer) {

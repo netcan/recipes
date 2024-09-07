@@ -55,6 +55,7 @@ private:
 private:
     void triangleDraw();
     void dumpZbuffer(const ZBuffer& zbuffer);
+    void dumpLight();
 
 private:
     SDL_Renderer *render_ {};
