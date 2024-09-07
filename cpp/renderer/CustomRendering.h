@@ -31,8 +31,9 @@ struct Canvas {
     }
 
     void drawPixel(Point2i p, const Color& color);
-    void triangle(Point3i a, Point3i b, Point3i c, ZBuffer& zbuffer, const Color& color);
-    void bresenhamLine(Point2i p0, Point2i p1, const Color& color);
+    void triangle(const std::array<Point3i, 3> &vertex, const std::array<Point2i, 3> &uv, const Texture &texture,
+                  ZBuffer &zbuffer, double intensity);
+    void bresenhamLine(Point2i p0, Point2i p1, const Color &color);
 
 private:
     std::unique_ptr<SDL_Surface, utils::Delector<SDL_FreeSurface>> surface_;

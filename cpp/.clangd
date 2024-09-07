@@ -1,2 +1,5 @@
 CompileFlags:
-    Add: [-DSDL_DYNAMIC_API=0]
+    Add: [
+        -DSDL_DYNAMIC_API=0,
+        -DSTB_IMAGE_IMPLEMENTATION
+    ]

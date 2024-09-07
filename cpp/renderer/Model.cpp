@@ -26,12 +26,12 @@ Model::Model(const char *filename) {
             iss >> v.x >> v.y >> v.z;
             verts_.push_back(v);
         } else if (line.starts_with("vn ")) {
-            iss >> trash;
+            iss >> trash >> trash;
             Vec3f v{};
             iss >> v.x >> v.y >> v.z;
             normal_.push_back(v);
         } else if (line.starts_with("vt ")) {
-            iss >> trash;
+            iss >> trash >> trash;
             Vec2f v{};
             iss >> v.x >> v.y;
             uv_.push_back(v);

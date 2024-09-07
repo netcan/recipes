@@ -28,13 +28,16 @@ struct Model {
 };
 
 struct Texture {
-    explicit Texture(const char *filename) : data_{stbi_load(filename, &width_, &height_, &comp_, 0)} {
+    explicit Texture(const char *filename) {
+        stbi_set_flip_vertically_on_load(true);
+        data_.reset(reinterpret_cast<Color *>(stbi_load(filename, &width_, &height_, &comp_, 3)));
         printf("Loaded TGA image with dimensions: %d x %d, and %d components (channels):\n", width_, height_, comp_);
     }
+    Color get(Point2i p) const { return data_.get()[p.y * width_ + p.x]; }
 
-private:
     int width_{};
     int height_{};
+private:
     int comp_{};
-    std::unique_ptr<unsigned char, utils::Delector<stbi_image_free>> data_{};
+    std::unique_ptr<Color, utils::Delector<stbi_image_free>> data_{};
 };

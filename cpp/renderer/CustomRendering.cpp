@@ -94,10 +94,11 @@ static constexpr Point3f barycentric(Point2i a, Point2i b, Point2i c, Point2i p)
 
 }
 
-
-void Canvas::triangle(Point3i a, Point3i b, Point3i c, ZBuffer& zbuffer, const Color& color) {
-    auto [minx, maxx] = std::minmax({a.x, b.x, c.x});
-    auto [miny, maxy] = std::minmax({a.y, b.y, c.y});
+void Canvas::triangle(const std::array<Point3i, 3> &vertex, const std::array<Point2i, 3> &uv, const Texture &texture,
+                      ZBuffer &zbuffer, double intensity) {
+    const auto &[va, vb, vc] = vertex;
+    auto [minx, maxx] = std::minmax({va.x, vb.x, vc.x});
+    auto [miny, maxy] = std::minmax({va.y, vb.y, vc.y});
     int lx = std::max(0, minx);
     int ly = std::max(0, miny);
     int rx = std::min(surface_->w, maxx);
@@ -106,14 +107,17 @@ void Canvas::triangle(Point3i a, Point3i b, Point3i c, ZBuffer& zbuffer, const C
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
             Vec p {x, y};
-            auto bcCoord = barycentric(vec_cast<Point2i>(a), vec_cast<Point2i>(b), vec_cast<Point2i>(c), p);
+            auto bcCoord = barycentric(vec_cast<Point2i>(va), vec_cast<Point2i>(vb), vec_cast<Point2i>(vc), p);
             if (bcCoord.u < 0 || bcCoord.v < 0 || bcCoord.w < 0) {
                 continue;
             }
-            int z = bcCoord.u * a.z + bcCoord.v * b.z + bcCoord.w * c.z;
+            int z = bcCoord.u * va.z + bcCoord.v * vb.z + bcCoord.w * vc.z;
             if (z > zbuffer[point2Index(p)]) {
+                const auto &[uva, uvb, uvc] = uv;
+                Vec uvP{bcCoord.u * uva.x + bcCoord.v * uvb.x + bcCoord.w * uvc.x,
+                        bcCoord.u * uva.y + bcCoord.v * uvb.y + bcCoord.w * uvc.y};
                 zbuffer[point2Index(p)] = z;
-                drawPixel(p, color);
+                drawPixel(p, vec_cast<Color>(texture.get(vec_cast<Point2i>(uvP)) * intensity));
             }
         }
     }
@@ -123,17 +127,20 @@ void CustomRendering::triangleDraw() {
     constexpr Vec light{0., 0., -1.};
     ZBuffer zbuffer((width_ + 1) * (height_ + 1), 0);
     for (const auto &face : model_.faces_) {
-        Point3i screenCoords[3];
-        Vec3f worldCoords[3];
+        std::array<Point3i, 3> screenCoords;
+        std::array<Point2i, 3> uvCoords;
+        std::array<Vec3f, 3> worldCoords;
+
         for (size_t i = 0; i < std::size(screenCoords); ++i) {
             const auto &v = model_.verts_[face[i].vIndex];
             screenCoords[i] = Vec3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
+            auto uv = model_.uv_[face[i].uvIndex];
+            uvCoords[i] = Vec2i(uv.x * texture_.width_, uv.y * texture_.height_);
             worldCoords[i] = v;
         }
         auto n = normalize(cross((worldCoords[2] - worldCoords[0]), (worldCoords[1] - worldCoords[0])));
         if (auto intensity = light * n; intensity > 0) {
-            canvas_.triangle(screenCoords[0], screenCoords[1], screenCoords[2], zbuffer,
-                             Color(intensity * color_.r, intensity * color_.g, intensity * color_.b));
+            canvas_.triangle(screenCoords, uvCoords, texture_, zbuffer, intensity);
         }
     }
     dumpZbuffer(zbuffer);
