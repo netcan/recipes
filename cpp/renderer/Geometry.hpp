@@ -45,6 +45,7 @@ template <NumericType T> struct Vec<T, 2> {
         struct {
             T w, h;
         };
+        T data[2];
     };
     constexpr Vec(T x = {}, T y = {}) : x{x}, y{y} {}
     constexpr T &operator[](const size_t i) {
@@ -72,6 +73,7 @@ template <NumericType T> struct Vec<T, 3> {
         struct {
             T r, g, b;
         };
+        T data[3];
     };
     constexpr Vec(T x = {}, T y = {}, T z = {}) : x{x}, y{y}, z{z} {}
     constexpr T &operator[](const size_t i) {
@@ -87,69 +89,84 @@ template <NumericType T> struct Vec<T, 3> {
    }
 };
 
-template<NumericType T, size_t N>
-constexpr Vec<T, N> operator+(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
-    Vec<T, N> res;
+template<NumericType T, NumericType R, size_t N>
+constexpr auto operator+(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
+    Vec<decltype(T{} + R{}), N> res;
     for (int i = 0; i < N; ++i) {
         res[i] = lhs[i] + rhs[i];
     }
     return res;
 }
 
-template<NumericType T, size_t N>
-constexpr bool operator==(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
+template<NumericType T, NumericType R, size_t N>
+constexpr bool operator==(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     for (size_t i = 0; i < N; ++i)
         if (lhs[i] != rhs[i]) return false;
     return true;
 }
 
-template<NumericType T, size_t N>
-constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
+template<NumericType T, NumericType R, size_t N>
+constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     return !(lhs == rhs);
 }
 
-template<NumericType T, size_t N>
-constexpr Vec<T, N> operator-(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
-    Vec<T, N> res;
+template<NumericType T, NumericType R, size_t N>
+constexpr auto operator-(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
+    Vec<decltype(T{} - R{}), N> res;
     for (int i = 0; i < N; ++i) {
         res[i] = lhs[i] - rhs[i];
     }
     return res;
 }
 
-template<NumericType T, size_t N>
-constexpr Vec<T, N> operator*(const Vec<T, N>& lhs, T c) {
-    Vec<T, N> res;
+template<NumericType T, NumericType R, size_t N>
+constexpr auto operator*(const Vec<T, N>& lhs, R c) {
+    Vec<decltype(T{} * R{}), N> res;
     for (int i = 0; i < N; ++i) {
         res[i] = lhs[i] * c;
     }
     return res;
 }
 
-template<NumericType T, size_t N>
-constexpr Vec<T, N> operator*(T c, const Vec<T, N>& rhs) {
+template<NumericType T, NumericType R, size_t N>
+constexpr auto operator*(R c, const Vec<T, N>& rhs) {
     return rhs * c;
 }
 
-template<NumericType T, size_t N>
-constexpr T operator*(const Vec<T, N>& lhs, const Vec<T, N>& rhs) {
-    T res {};
+template<NumericType T, NumericType R, size_t N>
+constexpr auto operator*(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
+    decltype(T{} * R{}) res {};
     for (int i = 0; i < N; ++i) {
         res += lhs[i] * rhs[i];
     }
     return res;
 }
 
-template<NumericType T>
-constexpr Vec<T, 3> cross(const Vec<T, 3>& lhs, const Vec<T, 3>& rhs) {
-    return {
-        lhs.y * rhs.z - lhs.z * rhs.y,
-        lhs.z * rhs.x - lhs.x * rhs.z,
-        lhs.x * rhs.y - lhs.y * rhs.x
-    };
+template <NumericType T, NumericType R>
+constexpr auto cross(const Vec<T, 3> &lhs, const Vec<R, 3> &rhs) -> Vec<decltype(T{} * R{}), 3> {
+    return {lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x};
 }
 
-template <NumericType T, size_t N> constexpr T norm(const Vec<T, N> &v) { return std::sqrt(v * v); }
+namespace details {
+template <NumericType T> constexpr T abs(T x) { return x >= 0 ? x : -x; }
+template <NumericType T> constexpr bool eq(T x, T y) { return abs(x - y) <= std::numeric_limits<T>::epsilon(); }
+template <NumericType T> constexpr T sqrt(T x, T curr, T prev) {
+    return curr == prev ? curr : sqrt(x, (curr + x / curr) / T{2}, curr);
+}
+} // namespace details
+
+template <NumericType T> constexpr T sqrtRoot(T x) {
+    return x >= 0 ? details::sqrt(x, x, T{0}) : std::numeric_limits<T>::quiet_NaN();
+}
+
+namespace test {
+static_assert(sqrtRoot(4) == 2);
+static_assert(sqrtRoot(9) == 3);
+static_assert(details::eq(sqrtRoot(5.5), 2.3452078799117149));
+}
+
+
+template <NumericType T, size_t N> constexpr T norm(const Vec<T, N> &v) { return sqrtRoot(v * v); }
 template <NumericType T, size_t N> constexpr Vec<T, N> normalize(const Vec<T, N> &v, T l = 1) {
     return v * (l / norm(v));
 }

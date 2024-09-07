@@ -179,9 +179,9 @@ void CustomRendering::draw() {
         return;
     }
 
-    static float color[3] {1, 1, 1};
-    ImGui::ColorEdit3("color", color);
-    color_ = Color(color[0] * 255, color[1] * 255, color[2] * 255);
+    static Vec color {1.f, 1.f, 1.f};
+    ImGui::ColorEdit3("color", color.data);
+    color_ = vec_cast<Color>(color * 255);
 
     ImGui::Text("vertex: %zu vt: %zu normal: %zu faces: %zu", model_.verts_.size(), model_.uv_.size(),
                 model_.normal_.size(), model_.faces_.size());
