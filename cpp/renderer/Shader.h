@@ -29,7 +29,7 @@ struct Shader {
 
         varyingUv_.setCol(index.nth, Vec2i(uv.x * texture_.width_, uv.y * texture_.height_));
 
-        varyingIntensity_[index.nth] = std::clamp(-normalize(light_) * normal, 0.f, 1.f);
+        varyingIntensity_[index.nth] = std::clamp(-light_.normalize() * normal, 0.f, 1.f);
 
         return Point3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
     }

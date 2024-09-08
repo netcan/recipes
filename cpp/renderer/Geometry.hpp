@@ -14,36 +14,43 @@
 #include <limits>
 #include <span>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// math op
 template <typename T>
 concept NumericType = std::integral<T> || std::floating_point<T>;
 
+namespace details {
+template <NumericType T> constexpr T abs(T x) { return x >= 0 ? x : -x; }
+template <NumericType T> constexpr bool eq(T x, T y) { return abs(x - y) <= std::numeric_limits<T>::epsilon(); }
+template <NumericType T> constexpr T sqrt(T x, T curr, T prev) {
+    return curr == prev ? curr : sqrt(x, (curr + x / curr) / T{2}, curr);
+}
+}
+
+template <NumericType T> constexpr T sqrtRoot(T x) {
+    return x >= 0 ? details::sqrt(x, x, T{0}) : std::numeric_limits<T>::quiet_NaN();
+}
+
+namespace test {
+static_assert(sqrtRoot(4) == 2);
+static_assert(sqrtRoot(9) == 3);
+static_assert(details::eq(sqrtRoot(5.5), 2.3452078799117149));
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// vec
-template<NumericType T, size_t N>
-struct Vec {
-    using value_type = T;
-    T data[N]{};
-    constexpr T& operator[](const size_t i) {
-        if (i < N) {
-            return data[i];
-        }
-        throw std::out_of_range("vector");
-    }
-    constexpr T operator[](const size_t i) const {
-        if (i < N) {
-            return data[i];
-        }
-        throw std::out_of_range("vector");
+template <NumericType T, size_t N>
+struct VecBase {
+    T data[N] {};
+    constexpr VecBase(const std::initializer_list<T>& il) {
+        std::copy_n(std::begin(il), std::min(il.size(), N), std::begin(data));
     }
 };
 
-template <NumericType T, std::same_as<T>... Args>
-Vec(T, Args...) -> Vec<T, sizeof...(Args) + 1>;
-
-template <NumericType T> struct Vec<T, 2> {
-    using value_type = T;
+template <NumericType T> struct VecBase<T, 2> {
     union {
         struct {
             T x, y;
@@ -56,22 +63,10 @@ template <NumericType T> struct Vec<T, 2> {
         };
         T data[2];
     };
-    constexpr Vec(T x = {}, T y = {}) : x{x}, y{y} {}
-    constexpr T &operator[](const size_t i) {
-        if (i >= 2)
-            throw std::out_of_range("vector");
-        return i == 0 ? x : y;
-    }
-
-    constexpr T operator[](const size_t i) const {
-        if (i >= 2)
-            throw std::out_of_range("vector");
-        return i == 0 ? x : y;
-    }
+    constexpr VecBase(T x = {}, T y = {}) : x{x}, y{y} {}
 };
 
-template <NumericType T> struct Vec<T, 3> {
-    using value_type = T;
+template <NumericType T> struct VecBase<T, 3> {
     union {
         struct {
             T x, y, z;
@@ -84,19 +79,37 @@ template <NumericType T> struct Vec<T, 3> {
         };
         T data[3];
     };
-    constexpr Vec(T x = {}, T y = {}, T z = {}) : x{x}, y{y}, z{z} {}
-    constexpr T &operator[](const size_t i) {
-        if (i >= 3)
-            throw std::out_of_range("vector");
-        return (i == 0) ? x : (i == 1) ? y : z;
-    }
-
-    constexpr T operator[](const size_t i) const {
-        if (i >= 3)
-            throw std::out_of_range("vector");
-        return (i == 0) ? x : (i == 1) ? y : z;
-   }
+    constexpr VecBase(T x = {}, T y = {}, T z = {}) : x{x}, y{y}, z{z} {}
 };
+
+
+template<NumericType T, size_t N>
+struct Vec: VecBase<T, N> {
+    using VecBase<T, N>::VecBase;
+
+    template <typename Self> constexpr auto& operator[](this Self&& self, size_t i) { return self.data[i]; }
+
+    // xyz
+    template <typename Self> requires(N > 0) constexpr auto& x_(this Self&& self) { return self.data[0]; }
+    template <typename Self> requires(N > 1) constexpr auto& y_(this Self&& self) { return self.data[1]; }
+    template <typename Self> requires(N > 2) constexpr auto& z_(this Self&& self) { return self.data[2]; }
+
+    // rgb
+    template <typename Self> requires(N > 0) constexpr auto& r_(this Self&& self) { return self.data[0]; }
+    template <typename Self> requires(N > 1) constexpr auto& g_(this Self&& self) { return self.data[1]; }
+    template <typename Self> requires(N > 2) constexpr auto& b_(this Self&& self) { return self.data[2]; }
+
+    // uvw
+    template <typename Self> requires(N > 0) constexpr auto& u_(this Self&& self) { return self.data[0]; }
+    template <typename Self> requires(N > 1) constexpr auto& v_(this Self&& self) { return self.data[1]; }
+    template <typename Self> requires(N > 2) constexpr auto& w_(this Self&& self) { return self.data[2]; }
+
+    constexpr T   norm() const { return sqrtRoot(*this * *this); }
+    constexpr Vec normalize(T l = 1) const { return *this * (l / norm()); }
+};
+
+template <NumericType T, std::same_as<T>... Args>
+Vec(T, Args...) -> Vec<T, sizeof...(Args) + 1>;
 
 template<NumericType T, NumericType R, size_t N>
 constexpr auto operator+(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
@@ -146,24 +159,6 @@ constexpr auto cross(const Vec<T, 3>& lhs, const Vec<R, 3>& rhs) -> Vec<decltype
     return {lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x};
 }
 
-namespace details {
-template <NumericType T> constexpr T abs(T x) { return x >= 0 ? x : -x; }
-template <NumericType T> constexpr bool eq(T x, T y) { return abs(x - y) <= std::numeric_limits<T>::epsilon(); }
-template <NumericType T> constexpr T sqrt(T x, T curr, T prev) {
-    return curr == prev ? curr : sqrt(x, (curr + x / curr) / T{2}, curr);
-}
-}
-
-template <NumericType T> constexpr T sqrtRoot(T x) {
-    return x >= 0 ? details::sqrt(x, x, T{0}) : std::numeric_limits<T>::quiet_NaN();
-}
-
-namespace test {
-static_assert(sqrtRoot(4) == 2);
-static_assert(sqrtRoot(9) == 3);
-static_assert(details::eq(sqrtRoot(5.5), 2.3452078799117149));
-}
-
 template <NumericType T, NumericType R, size_t N>
 constexpr bool operator==(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     for (size_t i = 0; i < N; ++i)
@@ -177,19 +172,13 @@ constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     return !(lhs == rhs);
 }
 
-template <NumericType T, size_t N> constexpr T         norm(const Vec<T, N>& v) { return sqrtRoot(v * v); }
-template <NumericType T, size_t N> constexpr Vec<T, N> normalize(const Vec<T, N>& v, T l = 1) {
-    return v * (l / norm(v));
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// matrix
 template<NumericType T, size_t M, size_t N>
 struct Matrix {
     T data[M][N] {};
     constexpr Matrix() {}
-    template <size_t... Dims>
-    requires(sizeof...(Dims) == M && ((N == Dims) && ...))
+    template <size_t... Dims> requires(sizeof...(Dims) == M && ((N == Dims) && ...))
     constexpr Matrix(const T (&... rows)[Dims]) {
         auto initRow = [this](int i, const T(&row)[N]) {
             for (size_t j = 0; j < std::size(row); ++j) {
@@ -201,22 +190,31 @@ struct Matrix {
     }
 
     template<NumericType R, size_t V>
-    void setCol(size_t j, const Vec<R, V>& col) {
+    constexpr void setCol(size_t j, const Vec<R, V>& col) {
         for (int i = 0; i < std::min(M, V); ++i) {
             data[i][j] = col[i];
         }
     }
 
     template<NumericType R, size_t V>
-    void setRow(size_t i, const Vec<R, V>& row) {
+    constexpr void setRow(size_t i, const Vec<R, V>& row) {
         for (int j = 0; j < std::min(N, V); ++j) {
             data[i][j] = row[i];
         }
     }
+
+    constexpr auto transposition() {
+        Matrix<T, N, M> res;
+        for (size_t i = 0; i < M; ++i) {
+            for (size_t j = 0; j < N; ++j) {
+                res.data[j][i] = data[i][j];
+            }
+        }
+        return res;
+    }
 };
 
-template <NumericType T, size_t Dim, size_t... Dims>
-requires((Dim == Dims) && ...)
+template <NumericType T, size_t Dim, size_t... Dims> requires((Dim == Dims) && ...)
 Matrix(const T (&)[Dim], const T (&... rows)[Dims]) -> Matrix<T, sizeof...(Dims) + 1, Dim>;
 
 template<NumericType T, NumericType R, size_t M, size_t N>
@@ -286,17 +284,6 @@ constexpr auto operator*(const Matrix<T, M, N>& lhs, const Matrix<R, N, P>& rhs)
     return res;
 }
 
-template<NumericType T, size_t M, size_t N>
-constexpr auto transposition(const Matrix<T, M, N>& lhs) {
-    Matrix<T, N, M> res;
-    for (size_t i = 0; i < M; ++i) {
-        for (size_t j = 0; j < N; ++j) {
-            res.data[j][i] = lhs.data[i][j];
-        }
-    }
-    return res;
-}
-
 namespace test {
 static_assert([] {
     constexpr Matrix A = {
@@ -320,10 +307,11 @@ static_assert([] {
                                {6, 8},
                            });
 
-    static_assert(transposition(Matrix{
+    static_assert(Matrix{
                       {1, 2, 3},
                       {4, 5, 6},
-                  }) == Matrix{{1, 4}, {2, 5}, {3, 6}});
+                  }
+                      .transposition() == Matrix{{1, 4}, {2, 5}, {3, 6}});
 
     static_assert(Matrix{
                       {1, 2, 3},
