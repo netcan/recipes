@@ -44,6 +44,11 @@ template <NumericType T, size_t N> struct Vec {
     T data[N] {};
 
     template <typename... Args> requires(sizeof...(Args) <= N) constexpr Vec(Args... args) : data(args...) {}
+    template <NumericType R, size_t M> constexpr Vec(const Vec<R, M>& rhs) {
+        for (size_t i = 0; i < std::min(M, N); ++i) {
+            data[i] = rhs[i];
+        }
+    }
 
     template <typename Self> constexpr auto& operator[](this Self&& self, size_t i) { return self.data[i]; }
     // xyz
@@ -148,7 +153,9 @@ constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
 template<NumericType T, size_t M, size_t N>
 struct Matrix {
     T data[M][N] {};
+
     constexpr Matrix() {}
+
     template <size_t... Dims> requires(sizeof...(Dims) == M && ((N == Dims) && ...))
     constexpr Matrix(const T (&... rows)[Dims]) {
         auto initRow = [this](int i, const T(&row)[N]) {
@@ -186,14 +193,8 @@ struct Matrix {
 
     constexpr auto toV() const requires(M == 1 || N == 1) {
         Vec<T, N * M> res;
-        if constexpr (M == 1) {
-            for (size_t i = 0; i < N; ++i) {
-                res[i] = data[0][i];
-            }
-        } else {
-            for (size_t i = 0; i < M; ++i) {
-                res[i] = data[i][0];
-            }
+        for (size_t i = 0; i < N * M; ++i) {
+            res[i] = M == 1 ? data[0][i] : data[i][0];
         }
         return res;
     }

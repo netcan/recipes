@@ -38,7 +38,7 @@ struct Shader {
         auto intensity = bar * varyingIntensity_;
 
         auto uvP = (varyingUv_ * bar.toM()).toV();
-        color = (texture_.get(uvP.to<Point2i>()) * intensity).to<Color>();
+        color = texture_.get(uvP) * intensity;
         return false;
     }
 
