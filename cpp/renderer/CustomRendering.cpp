@@ -70,8 +70,8 @@ void CustomRendering::wireFrameDraw()
             screenCoords[i] = shader_.vertex(face[i]);
         }
         for (int i = 0; i < 3; i++) {
-            auto v0 = vec_cast<Point2i>(screenCoords[i]);
-            auto v1 = vec_cast<Point2i>(screenCoords[(i + 1) % 3]);
+            auto v0 = vcast<Point2i>(screenCoords[i]);
+            auto v1 = vcast<Point2i>(screenCoords[(i + 1) % 3]);
             canvas_.bresenhamLine(v0, v1, color_);
         }
     }
@@ -108,7 +108,7 @@ void Canvas::triangle(const std::array<Point3i, 3> &vertex, const Shader &shader
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
             Vec p {x, y};
-            auto bcCoord = barycentric(vec_cast<Point2i>(va), vec_cast<Point2i>(vb), vec_cast<Point2i>(vc), p);
+            auto bcCoord = barycentric(vcast<Point2i>(va), vcast<Point2i>(vb), vcast<Point2i>(vc), p);
             int z = bcCoord.u * va.z + bcCoord.v * vb.z + bcCoord.w * vc.z;
             if (bcCoord.u < 0 || bcCoord.v < 0 || bcCoord.w < 0 || z <= zbuffer[point2Index(p)]) {
                 continue;
@@ -140,7 +140,7 @@ void CustomRendering::dumpLight() {
     // auto light = light_ * 10;
     auto o     = Vec3f((0 + 1.) * width_ / 2., (0 + 1.) * height_ / 2., (0 + 1.) * kDepth / 2);
     auto light = Vec3f((light_.x + 1.) * width_ / 2., (light_.y + 1.) * height_ / 2., (light_.z + 1.) * kDepth / 2);
-    canvas_.bresenhamLine(vec_cast<Point2i>(o), vec_cast<Point2i>(light), color_);
+    canvas_.bresenhamLine(vcast<Point2i>(o), vcast<Point2i>(light), color_);
 }
 
 void CustomRendering::dumpZbuffer(const ZBuffer& zbuffer) {
@@ -185,7 +185,7 @@ void CustomRendering::draw() {
 
     static Vec color {1.f, 1.f, 1.f};
     ImGui::ColorEdit3("color", color.data);
-    color_ = vec_cast<Color>(color * 255);
+    color_ = vcast<Color>(color * 255);
     shader_.dumpInfo();
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     ImGui::DragFloat3("light", light_.data, 0, -1, 1);

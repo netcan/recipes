@@ -40,7 +40,7 @@ struct Shader {
             bar * Vec{varyingUv_[0].x, varyingUv_[1].x, varyingUv_[2].x},
             bar * Vec{varyingUv_[0].y, varyingUv_[1].y, varyingUv_[2].y},
         };
-        color = vec_cast<Color>(texture_.get(vec_cast<Point2i>(uvP)) * intensity);
+        color = vcast<Color>(texture_.get(vcast<Point2i>(uvP)) * intensity);
         return false;
     }
 

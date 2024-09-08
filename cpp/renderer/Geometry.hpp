@@ -19,6 +19,8 @@
 template <typename T>
 concept NumericType = std::integral<T> || std::floating_point<T>;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// vec
 template<NumericType T, size_t N>
 struct Vec {
     using value_type = T;
@@ -36,6 +38,9 @@ struct Vec {
         throw std::out_of_range("vector");
     }
 };
+
+template <NumericType T, std::same_as<T>... Args>
+Vec(T, Args...) -> Vec<T, sizeof...(Args) + 1>;
 
 template <NumericType T> struct Vec<T, 2> {
     using value_type = T;
@@ -137,7 +142,7 @@ constexpr auto operator*(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
 }
 
 template <NumericType T, NumericType R>
-constexpr auto cross(const Vec<T, 3> &lhs, const Vec<R, 3> &rhs) -> Vec<decltype(T{} * R{}), 3> {
+constexpr auto cross(const Vec<T, 3>& lhs, const Vec<R, 3>& rhs) -> Vec<decltype(T{} * R{}), 3> {
     return {lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x};
 }
 
@@ -147,7 +152,7 @@ template <NumericType T> constexpr bool eq(T x, T y) { return abs(x - y) <= std:
 template <NumericType T> constexpr T sqrt(T x, T curr, T prev) {
     return curr == prev ? curr : sqrt(x, (curr + x / curr) / T{2}, curr);
 }
-} // namespace details
+}
 
 template <NumericType T> constexpr T sqrtRoot(T x) {
     return x >= 0 ? details::sqrt(x, x, T{0}) : std::numeric_limits<T>::quiet_NaN();
@@ -172,32 +177,13 @@ constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     return !(lhs == rhs);
 }
 
-template <NumericType T, size_t N> constexpr T norm(const Vec<T, N> &v) { return sqrtRoot(v * v); }
-template <NumericType T, size_t N> constexpr Vec<T, N> normalize(const Vec<T, N> &v, T l = 1) {
+template <NumericType T, size_t N> constexpr T         norm(const Vec<T, N>& v) { return sqrtRoot(v * v); }
+template <NumericType T, size_t N> constexpr Vec<T, N> normalize(const Vec<T, N>& v, T l = 1) {
     return v * (l / norm(v));
 }
 
-namespace details {
-struct AnyType {
-    template <typename T> operator T();
-};
-template <typename T> consteval size_t CountMember(auto &&...Args) {
-    if constexpr (!requires { T{Args...}; }) {
-        return sizeof...(Args) - 1;
-    } else {
-        return CountMember<T>(Args..., AnyType{});
-    }
-}
-} // namespace details
-
-template <typename R, NumericType T, size_t N>
-constexpr R vec_cast(const Vec<T, N> &v) {
-    constexpr size_t RN = details::CountMember<R>();
-    return [&v]<size_t... Is>(std::index_sequence<Is...>) {
-        return R (v[Is]...);
-    }(std::make_index_sequence<std::min(N, RN)>{});
-}
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// matrix
 template<NumericType T, size_t M, size_t N>
 struct Matrix {
     T data[M][N] {};
@@ -215,7 +201,7 @@ struct Matrix {
     }
 };
 
-template <typename T, size_t Dim, size_t... Dims>
+template <NumericType T, size_t Dim, size_t... Dims>
 requires((Dim == Dims) && ...)
 Matrix(const T (&)[Dim], const T (&... rows)[Dims]) -> Matrix<T, sizeof...(Dims) + 1, Dim>;
 
@@ -340,6 +326,7 @@ static_assert([] {
 } // namespace test
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// helpers
 using Point2i = Vec<int, 2>;
 using Point3i = Vec<int, 3>;
 using Point2f = Vec<float, 2>;
@@ -350,7 +337,41 @@ using Vec3i = Vec<int, 3>;
 using Vec2f = Vec<float, 2>;
 using Vec3f = Vec<float, 3>;
 
-template <NumericType T, typename... Args>
-requires(std::same_as<T, Args> && ...)
-Vec(T, Args...) -> Vec<T, sizeof...(Args) + 1>;
+namespace details {
+struct AnyType {
+    template <typename T> operator T();
+};
+template <typename T> consteval size_t CountMember(auto &&...Args) {
+    if constexpr (!requires { T{Args...}; }) {
+        return sizeof...(Args) - 1;
+    } else {
+        return CountMember<T>(Args..., AnyType{});
+    }
+}
+}
 
+template <typename R, NumericType T, size_t N>
+constexpr R vcast(const Vec<T, N> &v) {
+    constexpr size_t RN = details::CountMember<R>();
+    return [&v]<size_t... Is>(std::index_sequence<Is...>) {
+        return R (v[Is]...);
+    }(std::make_index_sequence<std::min(N, RN)>{});
+}
+
+template<NumericType T, size_t N>
+constexpr auto v2m(const Vec<T, N>& v) {
+    Matrix<T, N, 1> res;
+    for (size_t i = 0; i < N; ++i) {
+        res.data[i][0] = v[i];
+    }
+    return res;
+}
+
+template<NumericType T, size_t N>
+constexpr auto m2v(const Matrix<T, N, 1>& m) {
+    Vec<T, N> res;
+    for (size_t i = 0; i < N; ++i) {
+        res[i] = m.data[i][0];
+    }
+    return res;
+}
