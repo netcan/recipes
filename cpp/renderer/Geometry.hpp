@@ -43,49 +43,10 @@ static_assert(details::eq(sqrtRoot(5.5), 2.3452078799117149));
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// vec
 template <NumericType T, size_t N>
-struct VecBase {
+struct Vec {
     T data[N] {};
-    constexpr VecBase(const std::initializer_list<T>& il) {
-        std::copy_n(std::begin(il), std::min(il.size(), N), std::begin(data));
-    }
-};
 
-template <NumericType T> struct VecBase<T, 2> {
-    union {
-        struct {
-            T x, y;
-        };
-        struct {
-            T u, v;
-        };
-        struct {
-            T w, h;
-        };
-        T data[2];
-    };
-    constexpr VecBase(T x = {}, T y = {}) : x{x}, y{y} {}
-};
-
-template <NumericType T> struct VecBase<T, 3> {
-    union {
-        struct {
-            T x, y, z;
-        };
-        struct {
-            T u, v, w;
-        };
-        struct {
-            T r, g, b;
-        };
-        T data[3];
-    };
-    constexpr VecBase(T x = {}, T y = {}, T z = {}) : x{x}, y{y}, z{z} {}
-};
-
-
-template<NumericType T, size_t N>
-struct Vec: VecBase<T, N> {
-    using VecBase<T, N>::VecBase;
+    template <typename... Args> requires(sizeof...(Args) <= N) constexpr Vec(Args... args) : data(args...) {}
 
     template <typename Self> constexpr auto& operator[](this Self&& self, size_t i) { return self.data[i]; }
 
@@ -156,7 +117,8 @@ constexpr auto operator*(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
 
 template <NumericType T, NumericType R>
 constexpr auto cross(const Vec<T, 3>& lhs, const Vec<R, 3>& rhs) -> Vec<decltype(T{} * R{}), 3> {
-    return {lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x};
+    return {lhs.y_() * rhs.z_() - lhs.z_() * rhs.y_(), lhs.z_() * rhs.x_() - lhs.x_() * rhs.z_(),
+            lhs.x_() * rhs.y_() - lhs.y_() * rhs.x_()};
 }
 
 template <NumericType T, NumericType R, size_t N>
@@ -347,8 +309,8 @@ namespace details {
 struct AnyType {
     template <typename T> operator T();
 };
-template <typename T> consteval size_t CountMember(auto &&...Args) {
-    if constexpr (!requires { T{Args...}; }) {
+template <typename T> consteval size_t CountMember(auto&&... Args) {
+    if constexpr (!requires { T(Args...); }) {
         return sizeof...(Args) - 1;
     } else {
         return CountMember<T>(Args..., AnyType{});

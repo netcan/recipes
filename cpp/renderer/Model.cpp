@@ -24,17 +24,17 @@ Model::Model(const char *filename) {
         if (line.starts_with("v ")) {
             iss >> trash;
             Vec3f v{};
-            iss >> v.x >> v.y >> v.z;
+            iss >> v.x_() >> v.y_() >> v.z_();
             verts_.push_back(v);
         } else if (line.starts_with("vn ")) {
             iss >> trash >> trash;
             Vec3f v{};
-            iss >> v.x >> v.y >> v.z;
+            iss >> v.x_() >> v.y_() >> v.z_();
             normal_.push_back(v.normalize());
         } else if (line.starts_with("vt ")) {
             iss >> trash >> trash;
             Vec2f v{};
-            iss >> v.x >> v.y;
+            iss >> v.x_() >> v.y_();
             uv_.push_back(v);
         } else if (line.starts_with("f ")) {
             std::vector<FaceIndex> f;

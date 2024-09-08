@@ -17,38 +17,38 @@
 #include "renderer/Shader.h"
 
 constexpr Uint32 toSDLColor(const SDL_PixelFormat *format, Color color) {
-    return SDL_MapRGB(format, color.r, color.g, color.b);
+    return SDL_MapRGB(format, color.r_(), color.g_(), color.b_());
 }
 
 void Canvas::drawPixel(Point2i p, const Color& color) {
-    if (p.x >= 0 && p.y >= 0 && p.x < surface_->w && p.y < surface_->h) {
+    if (p.x_() >= 0 && p.y_() >= 0 && p.x_() < surface_->w && p.y_() < surface_->h) {
         auto pixels = reinterpret_cast<Uint32 *>(surface_->pixels);
-        pixels[p.y * surface_->w + p.x] = toSDLColor(surface_->format, color);
+        pixels[p.y_() * surface_->w + p.x_()] = toSDLColor(surface_->format, color);
     }
 }
 
 void Canvas::bresenhamLine(Point2i p0, Point2i p1, const Color& color) {
-    auto dx = abs(p1.x - p0.x);
-    auto dy = abs(p1.y - p0.y);
+    auto dx = abs(p1.x_() - p0.x_());
+    auto dy = abs(p1.y_() - p0.y_());
     auto slope = dy > dx;
 
     if (slope) {
-        std::swap(p0.x, p0.y);
-        std::swap(p1.x, p1.y);
+        std::swap(p0.x_(), p0.y_());
+        std::swap(p1.x_(), p1.y_());
     }
 
-    if (p0.x > p1.x) {
-        std::swap(p0.x, p1.x);
-        std::swap(p0.y, p1.y);
+    if (p0.x_() > p1.x_()) {
+        std::swap(p0.x_(), p1.x_());
+        std::swap(p0.y_(), p1.y_());
     }
 
-    dx = abs(p1.x - p0.x);
-    dy = abs(p1.y - p0.y);
+    dx = abs(p1.x_() - p0.x_());
+    dy = abs(p1.y_() - p0.y_());
     auto error = dx / 2;
-    auto y = p0.y;
-    auto ystep = p0.y < p1.y ? 1 : -1;
+    auto y = p0.y_();
+    auto ystep = p0.y_() < p1.y_() ? 1 : -1;
 
-    for (int x = p0.x; x <= p1.x; ++x) {
+    for (int x = p0.x_(); x <= p1.x_(); ++x) {
         if (slope) {
             drawPixel({y, x}, color);
         } else {
@@ -86,20 +86,20 @@ static constexpr Point3f barycentric(Point2i a, Point2i b, Point2i c, Point2i p)
     // return { u, v, 1 - u - v }
 
     auto ca = a - c, cb = b - c, pc = c - p;
-    auto n = cross(Vec{ca.x, cb.x, pc.x}, Vec{ca.y, cb.y, pc.y});
-    if (n.z == 0) {
+    auto n = cross(Vec{ca.x_(), cb.x_(), pc.x_()}, Vec{ca.y_(), cb.y_(), pc.y_()});
+    if (n.z_() == 0) {
         return {1, 1, -1};
     }
-    auto u = n.x * 1.f/n.z;
-    auto v = n.y * 1.f/n.z;
+    auto u = n.x_() * 1.f/n.z_();
+    auto v = n.y_() * 1.f/n.z_();
     return {u, v, 1.f - u - v};
 
 }
 
 void Canvas::triangle(const std::array<Point3i, 3> &vertex, const Shader &shader, ZBuffer &zbuffer) {
     const auto &[va, vb, vc] = vertex;
-    auto [minx, maxx] = std::minmax({va.x, vb.x, vc.x});
-    auto [miny, maxy] = std::minmax({va.y, vb.y, vc.y});
+    auto [minx, maxx] = std::minmax({va.x_(), vb.x_(), vc.x_()});
+    auto [miny, maxy] = std::minmax({va.y_(), vb.y_(), vc.y_()});
     int lx = std::max(0, minx);
     int ly = std::max(0, miny);
     int rx = std::min(surface_->w, maxx);
@@ -109,8 +109,8 @@ void Canvas::triangle(const std::array<Point3i, 3> &vertex, const Shader &shader
         for (int y = ly; y <= ry; ++y) {
             Vec p {x, y};
             auto bcCoord = barycentric(vcast<Point2i>(va), vcast<Point2i>(vb), vcast<Point2i>(vc), p);
-            int z = bcCoord.u * va.z + bcCoord.v * vb.z + bcCoord.w * vc.z;
-            if (bcCoord.u < 0 || bcCoord.v < 0 || bcCoord.w < 0 || z <= zbuffer[point2Index(p)]) {
+            int z = bcCoord.u_() * va.z_() + bcCoord.v_() * vb.z_() + bcCoord.w_() * vc.z_();
+            if (bcCoord.u_() < 0 || bcCoord.v_() < 0 || bcCoord.w_() < 0 || z <= zbuffer[point2Index(p)]) {
                 continue;
             }
             Color c;
@@ -139,15 +139,15 @@ void CustomRendering::triangleDraw() {
 void CustomRendering::dumpLight() {
     // auto light = light_ * 10;
     auto o     = Vec3f((0 + 1.) * width_ / 2., (0 + 1.) * height_ / 2., (0 + 1.) * kDepth / 2);
-    auto light = Vec3f((light_.x + 1.) * width_ / 2., (light_.y + 1.) * height_ / 2., (light_.z + 1.) * kDepth / 2);
+    auto light = Vec3f((light_.x_() + 1.) * width_ / 2., (light_.y_() + 1.) * height_ / 2., (light_.z_() + 1.) * kDepth / 2);
     canvas_.bresenhamLine(vcast<Point2i>(o), vcast<Point2i>(light), color_);
 }
 
 void CustomRendering::dumpZbuffer(const ZBuffer& zbuffer) {
     if (ImGui::Begin(__FUNCTION__, NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         Point2i p;
-        for (p.x = 0; p.x < width_; ++p.x) {
-            for (p.y = 0; p.y < height_; ++p.y) {
+        for (p.x_() = 0; p.x_() < width_; ++p.x_()) {
+            for (p.y_() = 0; p.y_() < height_; ++p.y_()) {
                 auto z = zbuffer[zbufferCanvas_.point2Index(p)];
                 zbufferCanvas_.drawPixel(p, {z, z, z});
             }

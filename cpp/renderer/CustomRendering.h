@@ -27,7 +27,7 @@ struct Canvas {
     }
 
     constexpr size_t point2Index(Point2i p) {
-        return  p.y * surface_->w + p.x;
+        return  p.y_() * surface_->w + p.x_();
     }
 
     void drawPixel(Point2i p, const Color& color);

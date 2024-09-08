@@ -34,7 +34,7 @@ struct Texture {
         data_.reset(reinterpret_cast<Color *>(stbi_load(filename, &width_, &height_, &comp_, 3)));
         printf("Loaded TGA image with dimensions: %d x %d, and %d components (channels):\n", width_, height_, comp_);
     }
-    Color get(Point2i p) const { return data_.get()[p.y * width_ + p.x]; }
+    Color get(Point2i p) const { return data_.get()[p.y_() * width_ + p.x_()]; }
 
     int width_{};
     int height_{};

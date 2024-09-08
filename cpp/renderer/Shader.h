@@ -27,11 +27,11 @@ struct Shader {
         const auto& uv     = model_.uv_[index.uvIndex];
         const auto& normal = model_.normal_[index.nIndex];
 
-        varyingUv_.setCol(index.nth, Vec2i(uv.x * texture_.width_, uv.y * texture_.height_));
+        varyingUv_.setCol(index.nth, Vec2i(uv.x_() * texture_.width_, uv.y_() * texture_.height_));
 
         varyingIntensity_[index.nth] = std::clamp(-light_.normalize() * normal, 0.f, 1.f);
 
-        return Point3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
+        return Point3i((v.x_() + 1.) * width_ / 2., (v.y_() + 1.) * height_ / 2., (v.z_() + 1.) * kDepth / 2);
     }
 
     bool fragment(const Point3f& bar, Color& color) const {
