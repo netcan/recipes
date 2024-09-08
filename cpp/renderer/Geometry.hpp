@@ -410,7 +410,7 @@ constexpr Matrix44f lookat(const Point3f& camera, const Point3f& up = {0, 1, 0},
     auto y = z.cross(x).normalize();
 
     Matrix44f Tr = identity<float, 4>();
-    Tr.setCol(3, -camera);
+    Tr.setCol(3, -center);
 
     Matrix44f Rinv = identity<float, 4>();
     Rinv.setRow(0, x);
