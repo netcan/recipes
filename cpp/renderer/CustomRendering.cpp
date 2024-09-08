@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iterator>
+#include <limits>
 #include <utils/TimePerf.hpp>
 #include "CustomRendering.h"
 #include "imgui.h"
@@ -121,7 +122,7 @@ void Canvas::triangle(const std::array<Point3i, 3> &vertex, const Shader &shader
 }
 
 void CustomRendering::triangleDraw() {
-    ZBuffer zbuffer((width_ + 1) * (height_ + 1), 0);
+    ZBuffer zbuffer((width_ + 1) * (height_ + 1), std::numeric_limits<ZBuffer::value_type>::min());
     for (auto& face: shader_.faces()) {
         std::array<Point3i, 3> screenCoords;
         for (size_t i = 0; i < std::size(screenCoords); ++i) {
@@ -130,7 +131,7 @@ void CustomRendering::triangleDraw() {
         canvas_.triangle(screenCoords, shader_, zbuffer);
     }
 
-    dumpZbuffer(zbuffer);
+    // dumpZbuffer(zbuffer);
     dumpLight();
 }
 
@@ -193,7 +194,7 @@ void CustomRendering::draw() {
     ImGui::DragInt2("origin", origin_.data, 0, -width_, width_);
     updateWindowSize();
 
-    M_ = viewport(origin_, width_, height_, -1, 1) * projection(camera_.z_());
+    M_ = viewport(origin_, width_, height_, -1, 1) * projection(camera_.norm()) * lookat(camera_);
 
     switch (renderType_) {
         case WireFrameDraw: {

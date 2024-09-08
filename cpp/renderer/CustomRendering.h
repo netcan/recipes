@@ -13,7 +13,7 @@
 #include "Geometry.hpp"
 #pragma once
 
-using ZBuffer = std::vector<uint8_t>;
+using ZBuffer = std::vector<int>;
 struct Canvas {
     Canvas(int w, int h, SDL_Renderer *render)
         : surface_(SDL_CreateRGBSurfaceWithFormat(0, w, h, 0, SDL_PIXELFORMAT_RGB888)),
@@ -63,7 +63,7 @@ private:
     int height_ = 720;
     Matrix44f M_;
     Point2i   origin_{};
-    Point3i   camera_{0, 0, 3};
+    Point3i   camera_{1, 1, 3};
     Vec3f     light_{0., 0., -1.};
 
     Canvas canvas_ { width_, height_, render_ };

@@ -205,7 +205,7 @@ struct Matrix {
     template<NumericType R, size_t V>
     constexpr void setRow(size_t i, const Vec<R, V>& row) {
         for (int j = 0; j < std::min(N, V); ++j) {
-            data[i][j] = row[i];
+            data[i][j] = row[j];
         }
     }
 
@@ -385,7 +385,7 @@ using Matrix44f = Matrixf<4, 4>;
 
 constexpr size_t kDepth = 255;
 
-constexpr Matrix44f viewport(Point2i o, size_t width, size_t height, float vMin = -1, float vMax = 1) {
+constexpr Matrix44f viewport(const Point2i& o, size_t width, size_t height, float vMin = -1, float vMax = 1) {
     float l = (vMax - vMin);
     return {
         {width / l, 0.f,        0.f,        -vMin * width / l + o.x_() },
@@ -403,3 +403,21 @@ constexpr Matrix44f projection(float zc) {
         {0, 0, -1.f / zc, 1},
     };
 }
+
+constexpr Matrix44f lookat(const Point3f& camera, const Point3f& up = {0, 1, 0}, const Point3f& center = {}) {
+    auto z = (camera - center).normalize();
+    auto x = up.cross(z).normalize();
+    auto y = z.cross(x).normalize();
+
+    Matrix44f Tr = identity<float, 4>();
+    Tr.setCol(3, -camera);
+
+    Matrix44f Rinv = identity<float, 4>();
+    Rinv.setRow(0, x);
+    Rinv.setRow(1, y);
+    Rinv.setRow(2, z);
+
+    auto M = Rinv * Tr;
+    return M;
+}
+
