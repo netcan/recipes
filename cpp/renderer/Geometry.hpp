@@ -385,12 +385,21 @@ using Matrix44f = Matrixf<4, 4>;
 
 constexpr size_t kDepth = 255;
 
-constexpr Matrixf<4, 4> viewport(Point2i o, size_t width, size_t height, float vMin = -1, float vMax = 1) {
+constexpr Matrix44f viewport(Point2i o, size_t width, size_t height, float vMin = -1, float vMax = 1) {
     float l = (vMax - vMin);
     return {
-        {width / l, 0.f, 0.f, -vMin * width / l + o.x_()},
-        {0.f, height / l, 0.f, -vMin * height / l + o.y_()},
-        {0.f, 0.f, kDepth / l, -vMin * kDepth / l},
-        {0.f, 0.f, 0.f, 1.f},
+        {width / l, 0.f,        0.f,        -vMin * width / l + o.x_() },
+        {0.f,       height / l, 0.f,        -vMin * height / l + o.y_()},
+        {0.f,       0.f,        kDepth / l, -vMin * kDepth / l         },
+        {0.f,       0.f,        0.f,        1.f                        },
+    };
+}
+
+constexpr Matrix44f projection(float zc) {
+    return {
+        {1, 0, 0,         0},
+        {0, 1, 0,         0},
+        {0, 0, 1,         0},
+        {0, 0, -1.f / zc, 1},
     };
 }

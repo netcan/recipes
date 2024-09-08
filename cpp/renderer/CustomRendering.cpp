@@ -189,9 +189,11 @@ void CustomRendering::draw() {
     shader_.dumpInfo();
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     ImGui::DragFloat3("light", light_.data, 0, -1, 1);
+    ImGui::DragInt3("camera", camera_.data, 0, 1, width_);
     ImGui::DragInt2("origin", origin_.data, 0, -width_, width_);
     updateWindowSize();
-    M_ = viewport(origin_, width_, height_, -1, 1);
+
+    M_ = viewport(origin_, width_, height_, -1, 1) * projection(camera_.z_());
 
     switch (renderType_) {
         case WireFrameDraw: {

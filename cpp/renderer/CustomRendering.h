@@ -62,8 +62,9 @@ private:
     int width_ = 960;
     int height_ = 720;
     Matrix44f M_;
-    Point2i origin_ {};
-    Vec3f light_ {0., 0., -1.};
+    Point2i   origin_{};
+    Point3i   camera_{0, 0, 3};
+    Vec3f     light_{0., 0., -1.};
 
     Canvas canvas_ { width_, height_, render_ };
     Canvas zbufferCanvas_ { width_, height_, render_ };
