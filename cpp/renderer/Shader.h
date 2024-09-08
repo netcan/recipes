@@ -9,7 +9,6 @@
 
 #include "Model.h"
 #include "renderer/Geometry.hpp"
-constexpr size_t kDepth = 255;
 
 inline const char* LoadEnv(const char* name, const char* defaultValue) {
     if (auto v = std::getenv(name)) {
@@ -19,11 +18,11 @@ inline const char* LoadEnv(const char* name, const char* defaultValue) {
 }
 
 struct Shader {
-    Shader(int& width, int& height, Vec3f& light) : width_(width), height_(height), light_(light) {}
+    Shader(const Matrix44f& M, Vec3f& light) : M_(M), light_(light) {}
     const auto& faces() const { return model_.faces_; }
 
     Point3i vertex(const Model::FaceIndex& index) {
-        const auto& v      = model_.verts_[index.vIndex];
+        const auto& v      = model_.verts_[index.vIndex].toHomogeneous().toM();
         const auto& uv     = model_.uv_[index.uvIndex];
         const auto& normal = model_.normal_[index.nIndex];
 
@@ -31,7 +30,7 @@ struct Shader {
 
         varyingIntensity_[index.nth] = std::clamp(-light_.normalize() * normal, 0.f, 1.f);
 
-        return Point3i((v.x_() + 1.) * width_ / 2., (v.y_() + 1.) * height_ / 2., (v.z_() + 1.) * kDepth / 2);
+        return (M_ * v).toV().toAffine();
     }
 
     bool fragment(const Point3f& bar, Color& color) const {
@@ -48,11 +47,10 @@ struct Shader {
     }
 
 private:
-    const int&           width_;
-    const int&           height_;
+    const Matrix44f& M_;
     const Vec3f&         light_;
     const Model          model_{LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
-    const Texture texture_{LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};
+    const Texture        texture_{LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};
 
     Matrixi<2, 3> varyingUv_;
     Vec3f         varyingIntensity_;

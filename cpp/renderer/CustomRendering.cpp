@@ -188,7 +188,7 @@ void CustomRendering::draw() {
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     ImGui::DragFloat3("light", light_.data, 0, -1, 1);
     updateWindowSize();
-
+    M_ = viewport({0, 0}, width_, height_);
 
     switch (renderType_) {
         case WireFrameDraw: {

@@ -77,6 +77,17 @@ template <NumericType T, size_t N> struct Vec {
         }(std::make_index_sequence<std::min(N, RN)>{});
     }
 
+    constexpr auto toHomogeneous() const {
+        Vec<T, N + 1> res = *this;
+        res[N] = T{1};
+        return res;
+    }
+
+    constexpr auto toAffine() const {
+        Vec<T, N - 1> res { *this / data[N - 1] };
+        return res;
+    }
+
     constexpr auto toM() const {
         Matrix<T, N, 1> res;
         for (size_t i = 0; i < N; ++i) {
@@ -108,6 +119,11 @@ constexpr auto operator*(const Vec<T, N>& lhs, R c) {
         res[i] = lhs[i] * c;
     }
     return res;
+}
+
+template<NumericType T, NumericType R, size_t N>
+constexpr auto operator/(const Vec<T, N>& lhs, R c) {
+    return lhs * (R{1} / c);
 }
 
 template<NumericType T, NumericType R, size_t N>
@@ -329,6 +345,16 @@ static_assert([] {
 }());
 } // namespace test
 
+template<typename T, size_t N>
+constexpr auto identity() {
+    Matrix<T, N, N> res;
+    for (size_t i = 0; i < N; ++i) {
+        res.data[i][i] = T{1};
+    }
+    return res;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// helpers
 using Point2i = Vec<int, 2>;
@@ -343,4 +369,16 @@ using Vec3f   = Vec<float, 3>;
 
 template <size_t M, size_t N> using Matrixi = Matrix<int, M, N>;
 template <size_t M, size_t N> using Matrixf = Matrix<float, M, N>;
+using Matrix44f = Matrixf<4, 4>;
 
+constexpr size_t kDepth = 255;
+
+constexpr Matrixf<4, 4> viewport(Point2i o, size_t width, size_t height, float vMin = -1, float vMax = 1) {
+    float l = (vMax - vMin);
+    return {
+        {width / l, 0.f, 0.f, -vMin * width / l + o.x_()},
+        {0.f, height / l, 0.f, -vMin * height / l + o.y_()},
+        {0.f, 0.f, kDepth / l, -vMin * kDepth / l},
+        {0.f, 0.f, 0.f, 1.f},
+    };
+}
