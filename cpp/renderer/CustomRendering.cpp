@@ -169,8 +169,10 @@ void CustomRendering::updateWindowSize()
     if (availableSz.x < 0 || availableSz.y < 0) {
         return;
     }
-    width_ = availableSz.x;
-    height_ = availableSz.y;
+    // width_ = availableSz.x;
+    // height_ = availableSz.y;
+    // keep squre
+    height_ = width_ = std::max(availableSz.x, availableSz.y);
     canvas_ = {width_, height_, render_};
     zbufferCanvas_ = {width_, height_, render_};
 }
@@ -187,8 +189,9 @@ void CustomRendering::draw() {
     shader_.dumpInfo();
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     ImGui::DragFloat3("light", light_.data, 0, -1, 1);
+    ImGui::DragInt2("origin", origin_.data, 0, -width_, width_);
     updateWindowSize();
-    M_ = viewport({0, 0}, width_, height_);
+    M_ = viewport(origin_, width_, height_, -1, 1);
 
     switch (renderType_) {
         case WireFrameDraw: {
