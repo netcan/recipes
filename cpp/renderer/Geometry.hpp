@@ -199,6 +199,20 @@ struct Matrix {
         int i = 0;
         (initRow(i++, rows), ...);
     }
+
+    template<NumericType R, size_t V>
+    void setCol(size_t j, const Vec<R, V>& col) {
+        for (int i = 0; i < std::min(M, V); ++i) {
+            data[i][j] = col[i];
+        }
+    }
+
+    template<NumericType R, size_t V>
+    void setRow(size_t i, const Vec<R, V>& row) {
+        for (int j = 0; j < std::min(N, V); ++j) {
+            data[i][j] = row[i];
+        }
+    }
 };
 
 template <NumericType T, size_t Dim, size_t... Dims>
@@ -336,6 +350,10 @@ using Vec2i = Vec<int, 2>;
 using Vec3i = Vec<int, 3>;
 using Vec2f = Vec<float, 2>;
 using Vec3f = Vec<float, 3>;
+template<size_t M, size_t N>
+using Matrixi = Matrix<int, M, N>;
+template<size_t M, size_t N>
+using Matrixf = Matrix<float, M, N>;
 
 namespace details {
 struct AnyType {

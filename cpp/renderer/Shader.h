@@ -27,7 +27,8 @@ struct Shader {
         const auto& uv     = model_.uv_[index.uvIndex];
         const auto& normal = model_.normal_[index.nIndex];
 
-        varyingUv_[index.nth] = Point2i(uv.x * texture_.width_, uv.y * texture_.height_);
+        varyingUv_.setCol(index.nth, Vec2i(uv.x * texture_.width_, uv.y * texture_.height_));
+
         varyingIntensity_[index.nth] = std::clamp(-normalize(light_) * normal, 0.f, 1.f);
 
         return Point3i((v.x + 1.) * width_ / 2., (v.y + 1.) * height_ / 2., (v.z + 1.) * kDepth / 2);
@@ -36,10 +37,7 @@ struct Shader {
     bool fragment(const Point3f& bar, Color& color) const {
         auto intensity = bar * varyingIntensity_;
 
-        Vec uvP{
-            bar * Vec{varyingUv_[0].x, varyingUv_[1].x, varyingUv_[2].x},
-            bar * Vec{varyingUv_[0].y, varyingUv_[1].y, varyingUv_[2].y},
-        };
+        auto uvP = m2v(varyingUv_ * v2m(bar));
         color = vcast<Color>(texture_.get(vcast<Point2i>(uvP)) * intensity);
         return false;
     }
@@ -56,6 +54,6 @@ private:
     const Model          model_{LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
     const Texture texture_{LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};
 
-    std::array<Point2i, 3> varyingUv_;
-    Vec3f                  varyingIntensity_;
+    Matrixi<2, 3> varyingUv_;
+    Vec3f         varyingIntensity_;
 };
