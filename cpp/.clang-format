@@ -132,7 +132,7 @@ IndentCaseLabels: true
 IndentExternBlock: AfterExternBlock
 IndentGotoLabels: true
 IndentPPDirectives: None
-IndentRequiresClause: true
+IndentRequiresClause: false
 IndentWidth:     4
 IndentWrappedFunctionNames: false
 InsertBraces:    false

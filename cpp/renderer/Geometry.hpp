@@ -7,7 +7,12 @@
 ************************************************************************/
 #pragma once
 #include <algorithm>
+#include <cmath>
 #include <concepts>
+#include <cstdlib>
+#include <initializer_list>
+#include <limits>
+#include <span>
 #include <stdexcept>
 #include <utility>
 
@@ -98,36 +103,6 @@ constexpr auto operator+(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
 }
 
 template<NumericType T, NumericType R, size_t N>
-constexpr bool operator==(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
-    for (size_t i = 0; i < N; ++i)
-        if (lhs[i] != rhs[i]) return false;
-    return true;
-}
-
-template<NumericType T, NumericType R, size_t N>
-constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
-    return !(lhs == rhs);
-}
-
-template<NumericType T, NumericType R, size_t N>
-constexpr auto operator-(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
-    Vec<decltype(T{} - R{}), N> res;
-    for (size_t i = 0; i < N; ++i) {
-        res[i] = lhs[i] - rhs[i];
-    }
-    return res;
-}
-
-template<NumericType T,  size_t N>
-constexpr auto operator-(const Vec<T, N>& lhs) {
-    Vec<T, N> res;
-    for (size_t i = 0; i < N; ++i) {
-        res[i] = -lhs[i];
-    }
-    return res;
-}
-
-template<NumericType T, NumericType R, size_t N>
 constexpr auto operator*(const Vec<T, N>& lhs, R c) {
     Vec<decltype(T{} * R{}), N> res;
     for (size_t i = 0; i < N; ++i) {
@@ -139,6 +114,17 @@ constexpr auto operator*(const Vec<T, N>& lhs, R c) {
 template<NumericType T, NumericType R, size_t N>
 constexpr auto operator*(R c, const Vec<T, N>& rhs) {
     return rhs * c;
+}
+
+template<NumericType T,  size_t N>
+constexpr auto operator-(const Vec<T, N>& lhs) {
+    return lhs * -1;
+}
+
+
+template<NumericType T, NumericType R, size_t N>
+constexpr auto operator-(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
+    return lhs + -rhs;
 }
 
 template<NumericType T, NumericType R, size_t N>
@@ -173,6 +159,18 @@ static_assert(sqrtRoot(9) == 3);
 static_assert(details::eq(sqrtRoot(5.5), 2.3452078799117149));
 }
 
+template <NumericType T, NumericType R, size_t N>
+constexpr bool operator==(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
+    for (size_t i = 0; i < N; ++i)
+        if (!eq(lhs[i], rhs[i]))
+            return false;
+    return true;
+}
+
+template <NumericType T, NumericType R, size_t N>
+constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
+    return !(lhs == rhs);
+}
 
 template <NumericType T, size_t N> constexpr T norm(const Vec<T, N> &v) { return sqrtRoot(v * v); }
 template <NumericType T, size_t N> constexpr Vec<T, N> normalize(const Vec<T, N> &v, T l = 1) {
@@ -199,6 +197,147 @@ constexpr R vec_cast(const Vec<T, N> &v) {
         return R (v[Is]...);
     }(std::make_index_sequence<std::min(N, RN)>{});
 }
+
+template<NumericType T, size_t M, size_t N>
+struct Matrix {
+    T data[M][N] {};
+    constexpr Matrix() {}
+    template <size_t... Dims>
+    requires(sizeof...(Dims) == M && ((N == Dims) && ...))
+    constexpr Matrix(const T (&... rows)[Dims]) {
+        auto initRow = [this](int i, const T(&row)[N]) {
+            for (size_t j = 0; j < std::size(row); ++j) {
+                data[i][j] = row[j];
+            }
+        };
+        int i = 0;
+        (initRow(i++, rows), ...);
+    }
+};
+
+template <typename T, size_t Dim, size_t... Dims>
+requires((Dim == Dims) && ...)
+Matrix(const T (&)[Dim], const T (&... rows)[Dims]) -> Matrix<T, sizeof...(Dims) + 1, Dim>;
+
+template<NumericType T, NumericType R, size_t M, size_t N>
+constexpr auto operator==(const Matrix<T, M, N>& lhs, const Matrix<R, M, N>& rhs) {
+    for (size_t i = 0; i < M; ++i) {
+        for (size_t j = 0; j < N; ++j) {
+            if (!details::eq(lhs.data[i][j], rhs.data[i][j])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+template<NumericType T, NumericType R, size_t M, size_t N>
+constexpr auto operator!=(const Matrix<T, M, N>& lhs, const Matrix<R, M, N>& rhs) {
+    return !(lhs == rhs);
+}
+
+template<NumericType T, NumericType R, size_t M, size_t N>
+constexpr auto operator*(const Matrix<T, M, N>& lhs, R c) {
+    Matrix<decltype(T{} + R{}), M, N> res;
+    for (size_t i = 0; i < M; ++i) {
+        for (size_t j = 0; j < N; ++j) {
+            res.data[i][j] = lhs.data[i][j] * c;
+        }
+    }
+    return res;
+}
+
+template<NumericType T, NumericType R, size_t M, size_t N>
+constexpr auto operator*(R c, const Matrix<T, M, N>& rhs) {
+    return rhs * c;
+}
+
+template<NumericType T, size_t M, size_t N>
+constexpr auto operator-(const Matrix<T, M, N>& lhs) {
+    return T{-1} * lhs;
+}
+
+template<NumericType T, NumericType R, size_t M, size_t N>
+constexpr auto operator+(const Matrix<T, M, N>& lhs, const Matrix<R, M, N>& rhs) {
+    Matrix<decltype(T{} + R{}), M, N> res;
+    for (size_t i = 0; i < M; ++i) {
+        for (size_t j = 0; j < N; ++j) {
+            res.data[i][j] = lhs.data[i][j] + rhs.data[i][j];
+        }
+    }
+    return res;
+}
+
+template<NumericType T, NumericType R, size_t M, size_t N>
+constexpr auto operator-(const Matrix<T, M, N>& lhs, const Matrix<R, M, N>& rhs) {
+    return lhs + -rhs;
+}
+
+template<NumericType T, NumericType R, size_t M, size_t N, size_t P>
+constexpr auto operator*(const Matrix<T, M, N>& lhs, const Matrix<R, N, P>& rhs) {
+    Matrix<decltype(T{} * R{}), M, P> res;
+    for (size_t i = 0; i < M; ++i) {
+        for (size_t k = 0; k < N; ++k) {
+            for (size_t j = 0; j < P; ++j) {
+                res.data[i][j] += lhs.data[i][k] * rhs.data[k][j];
+            }
+        }
+    }
+    return res;
+}
+
+template<NumericType T, size_t M, size_t N>
+constexpr auto transposition(const Matrix<T, M, N>& lhs) {
+    Matrix<T, N, M> res;
+    for (size_t i = 0; i < M; ++i) {
+        for (size_t j = 0; j < N; ++j) {
+            res.data[j][i] = lhs.data[i][j];
+        }
+    }
+    return res;
+}
+
+namespace test {
+static_assert([] {
+    constexpr Matrix A = {
+        {1, 2},
+        {3, 4},
+    };
+    constexpr Matrix B = {
+        {5, 6},
+        {7, 8},
+    };
+    static_assert(A + B == Matrix{
+                               {6, 8},
+                               {10, 12},
+                           });
+    static_assert(B - A == Matrix{
+                               {4, 4},
+                               {4, 4},
+                           });
+    static_assert(A * 2 == Matrix{
+                               {2, 4},
+                               {6, 8},
+                           });
+
+    static_assert(transposition(Matrix{
+                      {1, 2, 3},
+                      {4, 5, 6},
+                  }) == Matrix{{1, 4}, {2, 5}, {3, 6}});
+
+    static_assert(Matrix{
+                      {1, 2, 3},
+                      {4, 5, 6},
+                  } *
+                      Matrix{
+                          {7, 8},
+                          {9, 10},
+                          {11, 12},
+                      } ==
+                  Matrix{{58, 64}, {139, 154}});
+    return true;
+}());
+} // namespace test
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 using Point2i = Vec<int, 2>;
