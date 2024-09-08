@@ -55,6 +55,7 @@ private:
     void triangleDraw();
     void dumpZbuffer(const ZBuffer& zbuffer);
     void dumpLight();
+    void viewerController();
 
 private:
     SDL_Renderer *render_ {};
@@ -62,8 +63,10 @@ private:
     int width_ = 960;
     int height_ = 720;
     Matrix44f M_;
-    Point2i   origin_{};
-    Point3i   camera_{1, 1, 3};
+    Point2i   viewO_{};
+    Point3f   camera_{1, 1, 3};
+    Point3f   cameraUp_{0, 1, 0};
+    Point3f   cameraO_{0, 0, 0};
     Vec3f     light_{0., 0., -1.};
 
     Canvas canvas_ { width_, height_, render_ };

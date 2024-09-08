@@ -122,6 +122,7 @@ void Canvas::triangle(const std::array<Point3i, 3> &vertex, const Shader &shader
 }
 
 void CustomRendering::triangleDraw() {
+    viewerController();
     ZBuffer zbuffer((width_ + 1) * (height_ + 1), std::numeric_limits<ZBuffer::value_type>::min());
     for (auto& face: shader_.faces()) {
         std::array<Point3i, 3> screenCoords;
@@ -133,6 +134,16 @@ void CustomRendering::triangleDraw() {
 
     // dumpZbuffer(zbuffer);
     dumpLight();
+}
+
+void CustomRendering::viewerController() {
+    ImGui::Begin(__FUNCTION__);
+    ImGui::DragFloat3("light", light_.data, 0, -1, 1);
+    ImGui::DragFloat3("camera", camera_.data, 0, -5, 5);
+    ImGui::DragFloat3("cameraUp", cameraUp_.data, 0, -5, 5);
+    ImGui::DragFloat3("cameraO", cameraO_.data, 0, -5, 5);
+    ImGui::DragInt2("viewO", viewO_.data, 0, -width_, width_);
+    ImGui::End();
 }
 
 void CustomRendering::dumpLight() {
@@ -186,15 +197,12 @@ void CustomRendering::draw() {
 
     static Vec color {1.f, 1.f, 1.f};
     ImGui::ColorEdit3("color", color.data);
+    ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     color_ = color * 255;
     shader_.dumpInfo();
-    ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
-    ImGui::DragFloat3("light", light_.data, 0, -1, 1);
-    ImGui::DragInt3("camera", camera_.data, 0, 1, width_);
-    ImGui::DragInt2("origin", origin_.data, 0, -width_, width_);
     updateWindowSize();
 
-    M_ = viewport(origin_, width_, height_, -1, 1) * projection(camera_.norm()) * lookat(camera_);
+    M_ = viewport(viewO_, width_, height_, -1, 1) * projection(camera_.norm()) * lookat(camera_, cameraUp_, cameraO_);
 
     switch (renderType_) {
         case WireFrameDraw: {
