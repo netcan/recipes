@@ -11,7 +11,6 @@
 #include "renderer/Shader.h"
 #include "utils/Delector.hpp"
 #include "Geometry.hpp"
-#include "Model.h"
 #pragma once
 
 using ZBuffer = std::vector<uint8_t>;

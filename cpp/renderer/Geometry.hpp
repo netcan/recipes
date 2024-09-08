@@ -7,15 +7,12 @@
 ************************************************************************/
 #pragma once
 #include <algorithm>
-#include <cmath>
 #include <concepts>
 #include <cstdlib>
-#include <initializer_list>
 #include <limits>
 #include <span>
-#include <stdexcept>
-#include <type_traits>
 #include <utility>
+#include "utils/CountMember.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// math op
@@ -42,28 +39,46 @@ static_assert(details::eq(sqrtRoot(5.5), 2.3452078799117149));
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// vec
-template <NumericType T, size_t N>
-struct Vec {
+template <NumericType T, size_t M, size_t N> struct Matrix;
+template <NumericType T, size_t N> struct Vec {
     T data[N] {};
 
     template <typename... Args> requires(sizeof...(Args) <= N) constexpr Vec(Args... args) : data(args...) {}
 
     template <typename Self> constexpr auto& operator[](this Self&& self, size_t i) { return self.data[i]; }
-
     // xyz
     template <typename Self> requires(N > 0) constexpr auto& x_(this Self&& self) { return self.data[0]; }
     template <typename Self> requires(N > 1) constexpr auto& y_(this Self&& self) { return self.data[1]; }
     template <typename Self> requires(N > 2) constexpr auto& z_(this Self&& self) { return self.data[2]; }
-
     // rgb
     template <typename Self> requires(N > 0) constexpr auto& r_(this Self&& self) { return self.data[0]; }
     template <typename Self> requires(N > 1) constexpr auto& g_(this Self&& self) { return self.data[1]; }
     template <typename Self> requires(N > 2) constexpr auto& b_(this Self&& self) { return self.data[2]; }
-
     // uvw
     template <typename Self> requires(N > 0) constexpr auto& u_(this Self&& self) { return self.data[0]; }
     template <typename Self> requires(N > 1) constexpr auto& v_(this Self&& self) { return self.data[1]; }
     template <typename Self> requires(N > 2) constexpr auto& w_(this Self&& self) { return self.data[2]; }
+
+    template <NumericType R> requires(N == 3)
+    constexpr auto cross(const Vec<R, 3>& rhs) const -> Vec<decltype(T{} * R{}), 3> {
+        return {y_() * rhs.z_() - z_() * rhs.y_(), z_() * rhs.x_() - x_() * rhs.z_(),
+                x_() * rhs.y_() - y_() * rhs.x_()};
+    }
+
+    template <typename R> constexpr R to() const {
+        constexpr size_t RN = utils::CountMember<R>();
+        return [this]<size_t... Is>(std::index_sequence<Is...>) {
+            return R(data[Is]...);
+        }(std::make_index_sequence<std::min(N, RN)>{});
+    }
+
+    constexpr auto toM() const {
+        Matrix<T, N, 1> res;
+        for (size_t i = 0; i < N; ++i) {
+            res.data[i][0] = data[i];
+        }
+        return res;
+    }
 
     constexpr T   norm() const { return sqrtRoot(*this * *this); }
     constexpr Vec normalize(T l = 1) const { return *this * (l / norm()); }
@@ -115,16 +130,10 @@ constexpr auto operator*(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     return res;
 }
 
-template <NumericType T, NumericType R>
-constexpr auto cross(const Vec<T, 3>& lhs, const Vec<R, 3>& rhs) -> Vec<decltype(T{} * R{}), 3> {
-    return {lhs.y_() * rhs.z_() - lhs.z_() * rhs.y_(), lhs.z_() * rhs.x_() - lhs.x_() * rhs.z_(),
-            lhs.x_() * rhs.y_() - lhs.y_() * rhs.x_()};
-}
-
 template <NumericType T, NumericType R, size_t N>
 constexpr bool operator==(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
     for (size_t i = 0; i < N; ++i)
-        if (!eq(lhs[i], rhs[i]))
+        if (!details::eq(lhs[i], rhs[i]))
             return false;
     return true;
 }
@@ -165,11 +174,25 @@ struct Matrix {
         }
     }
 
-    constexpr auto transposition() {
+    constexpr auto transposition() const {
         Matrix<T, N, M> res;
         for (size_t i = 0; i < M; ++i) {
             for (size_t j = 0; j < N; ++j) {
                 res.data[j][i] = data[i][j];
+            }
+        }
+        return res;
+    }
+
+    constexpr auto toV() const requires(M == 1 || N == 1) {
+        Vec<T, N * M> res;
+        if constexpr (M == 1) {
+            for (size_t i = 0; i < N; ++i) {
+                res[i] = data[0][i];
+            }
+        } else {
+            for (size_t i = 0; i < M; ++i) {
+                res[i] = data[i][0];
             }
         }
         return res;
@@ -285,6 +308,22 @@ static_assert([] {
                           {11, 12},
                       } ==
                   Matrix{{58, 64}, {139, 154}});
+
+    static_assert(Matrix{
+                      {1, 2, 3},
+                  }
+                      .toV() == Vec{1, 2, 3});
+    static_assert(Matrix{
+                      {1},
+                      {2},
+                      {3},
+                  }
+                      .toV() == Vec{1, 2, 3});
+    static_assert(Matrix{
+                      {1},
+                      {2},
+                      {3},
+                  } == Vec{1, 2, 3}.toM());
     return true;
 }());
 } // namespace test
@@ -295,51 +334,12 @@ using Point2i = Vec<int, 2>;
 using Point3i = Vec<int, 3>;
 using Point2f = Vec<float, 2>;
 using Point3f = Vec<float, 3>;
-using Color = Vec<uint8_t, 3>;
-using Vec2i = Vec<int, 2>;
-using Vec3i = Vec<int, 3>;
-using Vec2f = Vec<float, 2>;
-using Vec3f = Vec<float, 3>;
-template<size_t M, size_t N>
-using Matrixi = Matrix<int, M, N>;
-template<size_t M, size_t N>
-using Matrixf = Matrix<float, M, N>;
+using Color   = Vec<uint8_t, 3>;
+using Vec2i   = Vec<int, 2>;
+using Vec3i   = Vec<int, 3>;
+using Vec2f   = Vec<float, 2>;
+using Vec3f   = Vec<float, 3>;
 
-namespace details {
-struct AnyType {
-    template <typename T> operator T();
-};
-template <typename T> consteval size_t CountMember(auto&&... Args) {
-    if constexpr (!requires { T(Args...); }) {
-        return sizeof...(Args) - 1;
-    } else {
-        return CountMember<T>(Args..., AnyType{});
-    }
-}
-}
+template <size_t M, size_t N> using Matrixi = Matrix<int, M, N>;
+template <size_t M, size_t N> using Matrixf = Matrix<float, M, N>;
 
-template <typename R, NumericType T, size_t N>
-constexpr R vcast(const Vec<T, N> &v) {
-    constexpr size_t RN = details::CountMember<R>();
-    return [&v]<size_t... Is>(std::index_sequence<Is...>) {
-        return R (v[Is]...);
-    }(std::make_index_sequence<std::min(N, RN)>{});
-}
-
-template<NumericType T, size_t N>
-constexpr auto v2m(const Vec<T, N>& v) {
-    Matrix<T, N, 1> res;
-    for (size_t i = 0; i < N; ++i) {
-        res.data[i][0] = v[i];
-    }
-    return res;
-}
-
-template<NumericType T, size_t N>
-constexpr auto m2v(const Matrix<T, N, 1>& m) {
-    Vec<T, N> res;
-    for (size_t i = 0; i < N; ++i) {
-        res[i] = m.data[i][0];
-    }
-    return res;
-}

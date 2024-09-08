@@ -70,8 +70,8 @@ void CustomRendering::wireFrameDraw()
             screenCoords[i] = shader_.vertex(face[i]);
         }
         for (int i = 0; i < 3; i++) {
-            auto v0 = vcast<Point2i>(screenCoords[i]);
-            auto v1 = vcast<Point2i>(screenCoords[(i + 1) % 3]);
+            auto v0 = screenCoords[i].to<Point2i>();
+            auto v1 = screenCoords[(i + 1) % 3].to<Point2i>();
             canvas_.bresenhamLine(v0, v1, color_);
         }
     }
@@ -86,7 +86,7 @@ static constexpr Point3f barycentric(Point2i a, Point2i b, Point2i c, Point2i p)
     // return { u, v, 1 - u - v }
 
     auto ca = a - c, cb = b - c, pc = c - p;
-    auto n = cross(Vec{ca.x_(), cb.x_(), pc.x_()}, Vec{ca.y_(), cb.y_(), pc.y_()});
+    auto n = Vec{ca.x_(), cb.x_(), pc.x_()}.cross(Vec{ca.y_(), cb.y_(), pc.y_()});
     if (n.z_() == 0) {
         return {1, 1, -1};
     }
@@ -108,7 +108,7 @@ void Canvas::triangle(const std::array<Point3i, 3> &vertex, const Shader &shader
     for (int x = lx; x <= rx; ++x) {
         for (int y = ly; y <= ry; ++y) {
             Vec p {x, y};
-            auto bcCoord = barycentric(vcast<Point2i>(va), vcast<Point2i>(vb), vcast<Point2i>(vc), p);
+            auto bcCoord = barycentric(va.to<Point2i>(), vb.to<Point2i>(), vc.to<Point2i>(), p);
             int z = bcCoord.u_() * va.z_() + bcCoord.v_() * vb.z_() + bcCoord.w_() * vc.z_();
             if (bcCoord.u_() < 0 || bcCoord.v_() < 0 || bcCoord.w_() < 0 || z <= zbuffer[point2Index(p)]) {
                 continue;
@@ -140,7 +140,7 @@ void CustomRendering::dumpLight() {
     // auto light = light_ * 10;
     auto o     = Vec3f((0 + 1.) * width_ / 2., (0 + 1.) * height_ / 2., (0 + 1.) * kDepth / 2);
     auto light = Vec3f((light_.x_() + 1.) * width_ / 2., (light_.y_() + 1.) * height_ / 2., (light_.z_() + 1.) * kDepth / 2);
-    canvas_.bresenhamLine(vcast<Point2i>(o), vcast<Point2i>(light), color_);
+    canvas_.bresenhamLine(o.to<Point2i>(), light.to<Point2i>(), color_);
 }
 
 void CustomRendering::dumpZbuffer(const ZBuffer& zbuffer) {
@@ -185,7 +185,7 @@ void CustomRendering::draw() {
 
     static Vec color {1.f, 1.f, 1.f};
     ImGui::ColorEdit3("color", color.data);
-    color_ = vcast<Color>(color * 255);
+    color_ = (color * 255).to<Color>();
     shader_.dumpInfo();
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     ImGui::DragFloat3("light", light_.data, 0, -1, 1);
