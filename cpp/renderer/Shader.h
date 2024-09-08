@@ -36,7 +36,7 @@ struct Shader {
     bool fragment(const Point3f& bar, Color& color) const {
         auto intensity = bar * varyingIntensity_;
 
-        auto uvP = (varyingUv_ * bar.toM()).toV();
+        Vec2f uvP = varyingUv_ * bar.toM();
         color = texture_.get(uvP) * intensity;
         return false;
     }

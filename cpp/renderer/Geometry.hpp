@@ -50,6 +50,18 @@ template <NumericType T, size_t N> struct Vec {
         }
     }
 
+    template <NumericType R> constexpr Vec(const Matrix<R, N, 1>& rhs) {
+        for (size_t i = 0; i < N; ++i) {
+            data[i] = rhs.data[i][0];
+        }
+    }
+
+    template <NumericType R> constexpr Vec(const Matrix<R, 1, N>& rhs) {
+        for (size_t i = 0; i < N; ++i) {
+            data[i] = rhs.data[0][i];
+        }
+    }
+
     template <typename Self> constexpr auto& operator[](this Self&& self, size_t i) { return self.data[i]; }
     // xyz
     template <typename Self> requires(N > 0) constexpr auto& x_(this Self&& self) { return self.data[0]; }
