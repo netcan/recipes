@@ -40,6 +40,9 @@ struct Texture {
         }
         return data_.get()[p.y_() * width_ + p.x_()];
     }
+    constexpr operator bool() const {
+        return width_ != 0 && height_ != 0;
+    }
 
     int width_{};
     int height_{};

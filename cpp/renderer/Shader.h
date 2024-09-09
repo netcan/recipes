@@ -26,19 +26,21 @@ struct Shader {
         const auto& uv     = model_.uv_[index.uvIndex];
         const auto& normal = model_.normal_[index.nIndex];
 
-        varyingUv_.setCol(index.nth, Vec2i(uv.x_() * texture_.width_, uv.y_() * texture_.height_));
-
-        Vec4f l = uniformM_ * light_.toHomogeneous().toM();
-        varyingIntensity_[index.nth] = std::clamp(-l.toAffine().normalize() * normal, 0.f, 1.f);
+        varyingUv_.setCol(index.nth, Vec2i(uv.x_() * diffuse_.width_, uv.y_() * diffuse_.height_));
+        varyingNormal_.setCol(index.nth, normal);
 
         return (viewport_ * uniformM_ * v).toV().toAffine();
     }
 
     bool fragment(const Point3f& bar, Color& color) const {
-        auto intensity = bar * varyingIntensity_;
 
         Vec2f uvP = varyingUv_ * bar.toM();
-        color = texture_.get(uvP) * intensity;
+        Vec3f normal = varyingNormal_ * bar.toM();
+        Vec4f l = uniformM_ * light_.toHomogeneous().toM();
+        auto intensity = std::clamp(-l.toAffine().normalize() * normal.normalize(), 0.f, 1.f);
+
+        color     = (diffuse_ ? diffuse_.get(uvP) : colors::white) * intensity;
+
         return false;
     }
 
@@ -56,8 +58,8 @@ private:
     Matrix44f            viewport_;
     const Vec3f&         light_;
     const Model          model_{LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
-    const Texture        texture_{LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};
+    const Texture        diffuse_{LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};
 
     Matrixi<2, 3> varyingUv_;
-    Vec3f         varyingIntensity_;
+    Matrixf<3, 3> varyingNormal_;
 };
