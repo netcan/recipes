@@ -122,7 +122,6 @@ void Canvas::triangle(const std::array<Point3i, 3> &vertex, const Shader &shader
 }
 
 void CustomRendering::triangleDraw() {
-    viewerController();
     ZBuffer zbuffer((width_ + 1) * (height_ + 1), std::numeric_limits<ZBuffer::value_type>::min());
     for (auto& face: shader_.faces()) {
         std::array<Point3i, 3> screenCoords;
@@ -132,7 +131,8 @@ void CustomRendering::triangleDraw() {
         canvas_.triangle(screenCoords, shader_, zbuffer);
     }
 
-    // dumpZbuffer(zbuffer);
+    viewerController();
+    dumpZbuffer(zbuffer);
     dumpLight();
 }
 
@@ -202,7 +202,8 @@ void CustomRendering::draw() {
     shader_.dumpInfo();
     updateWindowSize();
 
-    M_ = viewport(viewO_, width_, height_, -1, 1) * projection(camera_.norm()) * lookat(camera_, cameraUp_, cameraO_);
+    shader_.updateM(viewport(viewO_, width_, height_, -1, 1), projection(camera_.norm()),
+                    lookat(camera_, cameraUp_, cameraO_));
 
     switch (renderType_) {
         case WireFrameDraw: {

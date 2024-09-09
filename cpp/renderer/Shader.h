@@ -18,19 +18,20 @@ inline const char* LoadEnv(const char* name, const char* defaultValue) {
 }
 
 struct Shader {
-    Shader(const Matrix44f& M, Vec3f& light) : uniformM_(M), light_(light) {}
+    Shader(const Vec3f& light) : light_(light) {}
     const auto& faces() const { return model_.faces_; }
 
     Point3i vertex(const Model::FaceIndex& index) {
-        const auto& v      = model_.verts_[index.vIndex].toHomogeneous().toM();
+        auto        v      = model_.verts_[index.vIndex].toHomogeneous().toM();
         const auto& uv     = model_.uv_[index.uvIndex];
         const auto& normal = model_.normal_[index.nIndex];
 
         varyingUv_.setCol(index.nth, Vec2i(uv.x_() * texture_.width_, uv.y_() * texture_.height_));
 
-        varyingIntensity_[index.nth] = std::clamp(-light_.normalize() * normal, 0.f, 1.f);
+        Vec4f l = uniformM_ * light_.toHomogeneous().toM();
+        varyingIntensity_[index.nth] = std::clamp(-l.toAffine().normalize() * normal, 0.f, 1.f);
 
-        return (uniformM_ * v).toV().toAffine();
+        return (viewport_ * uniformM_ * v).toV().toAffine();
     }
 
     bool fragment(const Point3f& bar, Color& color) const {
@@ -45,9 +46,14 @@ struct Shader {
         ImGui::Text("vertex: %zu vt: %zu normal: %zu faces: %zu", model_.verts_.size(), model_.uv_.size(),
                     model_.normal_.size(), model_.faces_.size());
     }
+    void updateM(const Matrix44f& viewport, const Matrix44f& project, const Matrix44f& lookat) {
+        viewport_ = viewport;
+        uniformM_ = project * lookat;
+    }
 
 private:
-    const Matrix44f&     uniformM_;
+    Matrix44f            uniformM_;
+    Matrix44f            viewport_;
     const Vec3f&         light_;
     const Model          model_{LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
     const Texture        texture_{LoadEnv("TEXTURE", "renderer/object/AfricanHeadDiffuse.tga")};

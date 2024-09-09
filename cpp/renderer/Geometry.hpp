@@ -378,6 +378,7 @@ using Vec2i   = Vec<int, 2>;
 using Vec3i   = Vec<int, 3>;
 using Vec2f   = Vec<float, 2>;
 using Vec3f   = Vec<float, 3>;
+using Vec4f   = Vec<float, 4>;
 
 template <size_t M, size_t N> using Matrixi = Matrix<int, M, N>;
 template <size_t M, size_t N> using Matrixf = Matrix<float, M, N>;
