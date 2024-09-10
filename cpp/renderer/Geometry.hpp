@@ -17,11 +17,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// math op
 template <typename T>
-concept NumericType = std::integral<T> || std::floating_point<T>;
+concept NumericType = std::is_arithmetic_v<T>;
 
 namespace details {
 template <NumericType T> constexpr T abs(T x) { return x >= 0 ? x : -x; }
-template <NumericType T> constexpr bool eq(T x, T y) { return abs(x - y) <= std::numeric_limits<T>::epsilon(); }
+template <NumericType T> constexpr bool eq(T x, T y) { return abs(x - y) <= std::numeric_limits<T>::epsilon() * 10; }
 template <NumericType T> constexpr T sqrt(T x, T curr, T prev) {
     return curr == prev ? curr : sqrt(x, (curr + x / curr) / T{2}, curr);
 }
@@ -91,8 +91,8 @@ template <NumericType T, size_t N> struct Vec {
 
     constexpr auto toHomogeneous() const {
         Vec<T, N + 1> res = *this;
-        res[N] = T{1};
-        return res;
+        res[N]            = T{1};
+        return res.toM();
     }
 
     constexpr auto toAffine() const {
@@ -181,6 +181,9 @@ constexpr bool operator!=(const Vec<T, N>& lhs, const Vec<R, N>& rhs) {
 template<NumericType T, size_t M, size_t N>
 struct Matrix {
     T data[M][N] {};
+    static constexpr size_t nRow = M;
+    static constexpr size_t nCol = N;
+    using type = T;
 
     constexpr Matrix() {}
 
@@ -209,7 +212,7 @@ struct Matrix {
         }
     }
 
-    constexpr auto transposition() const {
+    constexpr auto transpose() const {
         Matrix<T, N, M> res;
         for (size_t i = 0; i < M; ++i) {
             for (size_t j = 0; j < N; ++j) {
@@ -225,6 +228,52 @@ struct Matrix {
             res[i] = M == 1 ? data[0][i] : data[i][0];
         }
         return res;
+    }
+
+    constexpr T det() const requires(M == N && M == 1) {
+        return data[0][0];
+    }
+
+    constexpr T det() const requires(M == N && M > 1) {
+        T ret = 0;
+        for (int i = N; i--; ret += data[0][i] * cofactor(0, i))
+            ;
+        return ret;
+    }
+
+    constexpr auto invertTranspose() const requires(M == N)  {
+        Matrix ret = adjugate();
+        T l = 0;
+        for (size_t i = 0; i < N; ++i) {
+            l += ret.data[0][i] * data[0][i];
+        }
+        return ret / l;
+    }
+
+    constexpr auto invert() const requires(M == N) {
+        return invertTranspose().transpose();
+    }
+
+private:
+    constexpr T cofactor(const int row, const int col) const {
+        auto minor = getMinor(row, col);
+        auto d = minor.det();
+        return d * ((row + col) % 2 ? -1 : 1);
+    }
+    constexpr auto adjugate() const {
+        Matrix ret;
+        for (int i = M; i--;)
+            for (int j = N; j--; ret.data[i][j] = cofactor(i, j))
+                ;
+        return ret;
+    }
+
+    constexpr auto getMinor(const int row, const int col) const {
+        Matrix<T, M - 1, N - 1> ret;
+        for (int i = M - 1; i--;)
+            for (int j = N - 1; j--; ret.data[i][j] = data[i < row ? i : i + 1][j < col ? j : j + 1])
+                ;
+        return ret;
     }
 };
 
@@ -264,6 +313,11 @@ constexpr auto operator*(R c, const Matrix<T, M, N>& rhs) {
     return rhs * c;
 }
 
+template<NumericType T, NumericType R, size_t M, size_t N>
+constexpr auto operator/(const Matrix<T, M, N>& lhs, R c) {
+    return lhs * (R{1}/c);
+}
+
 template<NumericType T, size_t M, size_t N>
 constexpr auto operator-(const Matrix<T, M, N>& lhs) {
     return T{-1} * lhs;
@@ -298,6 +352,15 @@ constexpr auto operator*(const Matrix<T, M, N>& lhs, const Matrix<R, N, P>& rhs)
     return res;
 }
 
+template<typename T, size_t N>
+constexpr auto identity() {
+    Matrix<T, N, N> res;
+    for (size_t i = 0; i < N; ++i) {
+        res.data[i][i] = T{1};
+    }
+    return res;
+}
+
 namespace test {
 static_assert([] {
     constexpr Matrix A = {
@@ -324,8 +387,8 @@ static_assert([] {
     static_assert(Matrix{
                       {1, 2, 3},
                       {4, 5, 6},
-                  }
-                      .transposition() == Matrix{{1, 4}, {2, 5}, {3, 6}});
+    }
+                      .transpose() == Matrix{{1, 4}, {2, 5}, {3, 6}});
 
     static_assert(Matrix{
                       {1, 2, 3},
@@ -353,18 +416,44 @@ static_assert([] {
                       {2},
                       {3},
                   } == Vec{1, 2, 3}.toM());
+
+    {
+        constexpr Matrix m{
+            {4., 2., 3., 1.},
+            {7., 6., 8., 2.},
+            {1., 5., 6., 4.},
+            {3., 9., 4., 5.}
+        };
+        static_assert(m * m.invert() == identity<decltype(m)::type, m.nRow>());
+    }
+    {
+        constexpr Matrix<float, 2, 2> m{
+            {4, 7},
+            {2, 6}
+        };
+        static_assert(m * m.invert() == identity<decltype(m)::type, m.nRow>());
+    }
+    {
+        constexpr Matrix<float, 3, 3> m{
+            {1, 2, 3},
+            {0, 1, 4},
+            {5, 6, 0}
+        };
+        static_assert(m * m.invert() == identity<decltype(m)::type, m.nRow>());
+    }
+    {
+        constexpr Matrix<float, 4, 4> m{
+            {4, 7, 1, 3},
+            {2, 6, 5, 9},
+            {3, 8, 6, 4},
+            {1, 2, 4, 5}
+        };
+        static_assert(m * m.invert() == identity<decltype(m)::type, m.nRow>());
+    }
+
     return true;
 }());
 } // namespace test
-
-template<typename T, size_t N>
-constexpr auto identity() {
-    Matrix<T, N, N> res;
-    for (size_t i = 0; i < N; ++i) {
-        res.data[i][i] = T{1};
-    }
-    return res;
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

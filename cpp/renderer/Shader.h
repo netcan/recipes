@@ -22,7 +22,7 @@ struct Shader {
     const auto& faces() const { return model_.faces_; }
 
     Point3i vertex(const Model::FaceIndex& index) {
-        auto        v      = model_.verts_[index.vIndex].toHomogeneous().toM();
+        auto        v      = model_.verts_[index.vIndex].toHomogeneous();
         const auto& uv     = model_.uv_[index.uvIndex];
         const auto& normal = model_.normal_[index.nIndex];
 
@@ -33,11 +33,10 @@ struct Shader {
     }
 
     bool fragment(const Point3f& bar, Color& color) const {
-
-        Vec2f uvP = varyingUv_ * bar.toM();
-        Vec3f normal = varyingNormal_ * bar.toM();
-        Vec4f l = uniformM_ * light_.toHomogeneous().toM();
-        auto intensity = std::clamp(-l.toAffine().normalize() * normal.normalize(), 0.f, 1.f);
+        Vec2f uvP       = varyingUv_ * bar.toM();
+        Vec3f normal    = varyingNormal_ * bar.toM();
+        Vec3f l         = Vec4f(uniformM_ * light_.toHomogeneous());
+        auto  intensity = std::clamp(-l.normalize() * normal.normalize(), 0.f, 1.f);
 
         color     = (diffuse_ ? diffuse_.get(uvP) : colors::white) * intensity;
 
