@@ -24,7 +24,7 @@ struct Shader {
     Point3i vertex(const Model::FaceIndex& index) {
         auto        v      = model_.verts_[index.vIndex].toHomogeneous();
         const auto& uv     = model_.uv_[index.uvIndex];
-        Vec3f normal = Vec4f(uniformMInv_ * model_.normal_[index.nIndex].toHomogeneous());
+        Vec3f normal = Vec4f(uniformMIT_ * model_.normal_[index.nIndex].toHomogeneous());
 
         varyingUv_.setCol(index.nth, Vec2i(uv.x_() * diffuse_.width_, uv.y_() * diffuse_.height_));
         varyingNormal_.setCol(index.nth, normal);
@@ -50,12 +50,12 @@ struct Shader {
     void updateM(const Matrix44f& viewport, const Matrix44f& project, const Matrix44f& lookat) {
         viewport_ = viewport;
         uniformM_ = project * lookat;
-        uniformMInv_ = uniformM_.invert();
+        uniformMIT_ = uniformM_.invertTranspose();
     }
 
 private:
     Matrix44f            uniformM_;
-    Matrix44f            uniformMInv_;
+    Matrix44f            uniformMIT_;
     Matrix44f            viewport_;
     const Vec3f&         light_;
     const Model          model_{LoadEnv("MODEL", "renderer/object/AfricanHead.obj")};
