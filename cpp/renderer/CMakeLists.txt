@@ -16,6 +16,10 @@ target_include_directories(renderer
     PRIVATE ${CMAKE_SOURCE_DIR}/third_party/imgui/)
 target_link_libraries(renderer SDL2)
 
+if (APPLE)
+    target_link_directories(renderer PRIVATE /opt/homebrew/opt/llvm/lib/c++)
+endif()
+
 add_custom_target(copy_object
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/object ${CMAKE_CURRENT_BINARY_DIR}/object
 )

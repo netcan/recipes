@@ -8,6 +8,7 @@
 
 #pragma once
 #include <vector>
+#include <print>
 #include <imgui.h>
 #include "renderer/Geometry.hpp"
 #include "stb/stb_image.h"
@@ -32,7 +33,8 @@ struct Texture {
     explicit Texture(const char *filename) {
         stbi_set_flip_vertically_on_load(true);
         data_.reset(reinterpret_cast<Color *>(stbi_load(filename, &width_, &height_, &comp_, 3)));
-        printf("Loaded TGA image with dimensions: %d x %d, and %d components (channels):\n", width_, height_, comp_);
+        std::println("Loaded {} TGA image with dimensions: {} x {}, and {} components (channels):", filename, width_,
+                     height_, comp_);
     }
     Color get(Point2i p) const {
         if (width_ == 0 || height_ == 0) {
