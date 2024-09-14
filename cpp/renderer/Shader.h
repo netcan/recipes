@@ -9,6 +9,8 @@
 
 #include "Model.h"
 #include "renderer/Geometry.hpp"
+#include <format>
+#include <print>
 
 inline const char* LoadEnv(const char* name, const char* defaultValue) {
     if (auto v = std::getenv(name)) {
@@ -43,10 +45,27 @@ struct Shader {
         return false;
     }
 
-    void dumpInfo() const {
-        ImGui::Text("vertex: %zu vt: %zu normal: %zu faces: %zu", model_.verts_.size(), model_.uv_.size(),
-                    model_.normal_.size(), model_.faces_.size());
+    enum ShaderInfo {
+        ModelInfo,
+        MatrixInfo,
+    };
+
+    void dumpInfo(ShaderInfo info) const {
+        switch (info) {
+            case ModelInfo: {
+                ImGui::Text("vertex: %zu vt: %zu normal: %zu faces: %zu", model_.verts_.size(), model_.uv_.size(),
+                            model_.normal_.size(), model_.faces_.size());
+                break;
+            }
+            case MatrixInfo: {
+                ImGui::Text("%s", std::format("viewport_:\n{::6.2f}", viewport_).c_str());
+                ImGui::Text("%s", std::format("uniformM_:\n{::5.2f}", uniformM_).c_str());
+                ImGui::Text("%s", std::format("uniformMIT_:\n{::5.2f}", uniformMIT_).c_str());
+                break;
+            }
+        }
     }
+
     void updateM(const Matrix44f& viewport, const Matrix44f& project, const Matrix44f& lookat) {
         viewport_ = viewport;
         uniformM_ = project * lookat;

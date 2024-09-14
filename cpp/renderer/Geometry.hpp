@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <concepts>
 #include <cstdlib>
+#include <format>
 #include <limits>
 #include <span>
 #include <utility>
@@ -468,6 +469,35 @@ using Vec3i   = Vec<int, 3>;
 using Vec2f   = Vec<float, 2>;
 using Vec3f   = Vec<float, 3>;
 using Vec4f   = Vec<float, 4>;
+
+namespace std {
+template <typename Char, NumericType T, size_t N> struct formatter<Vec<T, N>, Char> {
+    template <class ParseContext> constexpr ParseContext::iterator parse(ParseContext& ctx) {
+        return underlying_.parse(ctx);
+    }
+    template <typename Vec, typename FormatContext>
+    constexpr FormatContext::iterator format(const Vec& vec, FormatContext& ctx) const {
+        return underlying_.format(vec.data, ctx);
+    }
+    std::formatter<T[N], Char> underlying_;
+};
+
+template <typename Char, NumericType T, size_t M, size_t N> struct formatter<Matrix<T, M, N>, Char> {
+    template <class ParseContext> constexpr ParseContext::iterator parse(ParseContext& ctx) {
+        return underlying_.parse(ctx);
+    }
+    template <typename Mat, typename FormatContext>
+    constexpr FormatContext::iterator format(const Mat& m, FormatContext& ctx) const {
+        for (auto&& row : m.data) {
+            ctx.advance_to(underlying_.format(row, ctx));
+            *ctx.out()++ = '\n';
+        }
+        return ctx.out();
+    }
+
+    std::formatter<T[N], Char> underlying_;
+};
+};
 
 namespace colors {
 constexpr auto white = Color { 255, 255, 255};

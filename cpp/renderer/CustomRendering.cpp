@@ -143,6 +143,7 @@ void CustomRendering::viewerController() {
     ImGui::DragFloat3("cameraUp", cameraUp_.data, 0, -5, 5);
     ImGui::DragFloat3("cameraO", cameraO_.data, 0, -5, 5);
     ImGui::DragInt2("viewO", viewO_.data, 0, -width_, width_);
+    shader_.dumpInfo(Shader::MatrixInfo);
     ImGui::End();
 }
 
@@ -199,7 +200,7 @@ void CustomRendering::draw() {
     ImGui::ColorEdit3("color", color.data);
     ImGui::Combo("renderType", (int *)&renderType_, RenderItems, std::size(RenderItems));
     color_ = color * 255;
-    shader_.dumpInfo();
+    shader_.dumpInfo(Shader::ModelInfo);
     updateWindowSize();
 
     shader_.updateM(viewport(viewO_, width_, height_, -1, 1), projection(camera_.norm()),
