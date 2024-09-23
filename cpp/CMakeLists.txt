@@ -14,8 +14,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIR})
 
 
-include_directories(.
-    third_party)
+include_directories(.)
 
 set(CMAKE_C_FLAGS "-std=c99 -Wall")
 set(CMAKE_C_FLAGS_DEBUG "$ENV{CFLAGS} -O0 -g -ggdb")
@@ -24,11 +23,9 @@ set(CMAKE_CXX_FLAGS "-Wall -Wno-sign-compare -Wno-return-type -Wno-unused-result
 set(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -g -ggdb -fno-omit-frame-pointer -fsanitize=undefined -fsanitize=address")
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3")
 
-add_subdirectory(third_party)
 add_subdirectory(oop)
 add_subdirectory(clang-plugin)
 add_subdirectory(test)
 # add_subdirectory(lisp-parser)
 add_subdirectory(metaproggramming)
 add_subdirectory(coroutine)
-add_subdirectory(renderer)
